@@ -1,12 +1,7 @@
 <div align="center">
 
-```
-┌─┐┌─┐┌┐┌┌─┐┌─┐┌─┐
-│  │ │││││ ─┤│ ┬├┤
-└─┘└─┘┘└┘└─┘└─┘└─┘
-```
 
-# φόνος — phonos
+# 🎙️🗣️🔪 φόνος — phonos
 
 *phónos — voice, sound, speech... but also murder, slaughter, homicide (yes, really)*
 

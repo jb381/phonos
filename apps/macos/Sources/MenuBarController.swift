@@ -53,7 +53,8 @@ final class MenuBarController: NSObject, NSWindowDelegate, HotkeyManagerDelegate
     private func setupMenuBar() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         if let button = statusItem?.button {
-            button.title = "🎙️"
+            button.image = NSImage(systemSymbolName: "mic", accessibilityDescription: "Idle")
+            button.image?.isTemplate = true
         }
         buildMenu()
     }
@@ -248,7 +249,24 @@ final class MenuBarController: NSObject, NSWindowDelegate, HotkeyManagerDelegate
 
     @MainActor
     private func updateRecordingUI(_ recording: Bool) {
-        statusItem?.button?.title = recording ? "🔴" : "🎙️"
+        let button = statusItem?.button
+        if recording {
+            button?.image = NSImage(systemSymbolName: "mic.fill", accessibilityDescription: "Recording")
+            button?.image?.isTemplate = true
+            button?.wantsLayer = true
+            let pulse = CABasicAnimation(keyPath: "opacity")
+            pulse.fromValue = 1.0
+            pulse.toValue = 0.3
+            pulse.duration = 0.8
+            pulse.autoreverses = true
+            pulse.repeatCount = .infinity
+            button?.layer?.add(pulse, forKey: "pulse")
+        } else {
+            button?.image = NSImage(systemSymbolName: "mic", accessibilityDescription: "Idle")
+            button?.image?.isTemplate = true
+            button?.layer?.removeAnimation(forKey: "pulse")
+            button?.layer?.opacity = 1.0
+        }
 
         if let menu = statusItem?.menu {
             for item in menu.items where item.action == #selector(toggleRecording) {
