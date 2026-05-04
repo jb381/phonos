@@ -109,6 +109,9 @@ final class MenuBarController: NSObject, NSWindowDelegate, HotkeyManagerDelegate
         do {
             let health = try await ServerClient().healthCheck()
             item.title = "Server: \(health.model) (\(health.device))"
+            if settings.selectedModel != health.model {
+                settings.selectedModel = health.model
+            }
         } catch {
             item.title = "Server: offline"
         }

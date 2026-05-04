@@ -1,10 +1,12 @@
+import logging
 import os
 import tempfile
 import time
-import logging
-from fastapi import UploadFile, HTTPException
-from phonos_server.models import ModelManager
+
+from fastapi import HTTPException, UploadFile
+
 from phonos_server.config import Settings
+from phonos_server.models import ModelManager
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +61,7 @@ async def transcribe_audio(
         return result
     except RuntimeError as e:
         raise HTTPException(status_code=503, detail=str(e))
-    except Exception as e:
+    except Exception:
         logger.exception("Transcription failed")
         raise HTTPException(status_code=500, detail="Transcription failed")
     finally:

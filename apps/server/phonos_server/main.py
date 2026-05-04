@@ -1,9 +1,11 @@
 import logging
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Depends, UploadFile, File, HTTPException
+
+from fastapi import Depends, FastAPI, File, HTTPException, UploadFile
 from pydantic import BaseModel
-from phonos_server.config import get_settings, Settings
+
 from phonos_server.auth import require_auth
+from phonos_server.config import Settings, get_settings
 from phonos_server.models import ModelManager
 from phonos_server.transcription import transcribe_audio
 
@@ -14,7 +16,7 @@ class SetModelRequest(BaseModel):
     model: str
 
 
-manager: ModelManager = None  # type: ignore
+manager: ModelManager | None = None
 
 
 @asynccontextmanager

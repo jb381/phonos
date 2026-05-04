@@ -1,6 +1,10 @@
-import threading
+import ctypes
+import gc
 import logging
+import threading
+
 from faster_whisper import WhisperModel
+
 from phonos_server.config import Settings
 
 logger = logging.getLogger(__name__)
@@ -20,8 +24,11 @@ class ModelManager:
     def load(self, model_name: str):
         with self._lock:
             if self._model is not None:
+                logger.info("Unloading model: %s", self._model_name)
                 del self._model
                 self._model = None
+                gc.collect()
+                self._trim_memory()
             logger.info("Loading model: %s", model_name)
             self._model = WhisperModel(
                 model_name,
@@ -30,6 +37,14 @@ class ModelManager:
             )
             self._model_name = model_name
             logger.info("Model loaded: %s", model_name)
+
+    @staticmethod
+    def _trim_memory():
+        try:
+            libc = ctypes.CDLL("libc.so.6")
+            libc.malloc_trim(0)
+        except Exception:
+            pass
 
     def transcribe(self, audio_path: str, **kwargs):
         with self._lock:

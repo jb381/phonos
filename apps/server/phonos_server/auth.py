@@ -1,6 +1,7 @@
 from fastapi import Depends, HTTPException
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from phonos_server.config import get_settings, Settings
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+
+from phonos_server.config import Settings, get_settings
 
 security = HTTPBearer(auto_error=False)
 

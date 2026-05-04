@@ -13,6 +13,7 @@ paths:
     get:
       operationId: health
       summary: Server health check
+      security: []
       responses:
         "200":
           description: Server is healthy
@@ -25,6 +26,7 @@ paths:
     get:
       operationId: listModels
       summary: List configured models
+      security: []
       responses:
         "200":
           description: Available models
@@ -37,6 +39,7 @@ paths:
     get:
       operationId: getActiveModel
       summary: Get currently loaded model
+      security: []
       responses:
         "200":
           description: Active model info
@@ -47,6 +50,8 @@ paths:
     put:
       operationId: setActiveModel
       summary: Switch active Whisper model
+      security:
+        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -71,6 +76,8 @@ paths:
     post:
       operationId: transcribe
       summary: Transcribe uploaded audio
+      security:
+        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -172,5 +179,3 @@ components:
       properties:
         error:
           type: string
-  security:
-    - bearerAuth: []

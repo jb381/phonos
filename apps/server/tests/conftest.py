@@ -1,5 +1,6 @@
-import pytest
 from unittest.mock import MagicMock, patch
+
+import pytest
 
 
 @pytest.fixture
@@ -16,8 +17,8 @@ def mock_whisper():
 
 @pytest.fixture
 def mock_model_manager(mock_whisper):
-    from phonos_server.models import ModelManager
     from phonos_server.config import Settings
+    from phonos_server.models import ModelManager
 
     settings = Settings(auth_token="test-token")
     manager = ModelManager(settings)
@@ -28,8 +29,9 @@ def mock_model_manager(mock_whisper):
 @pytest.fixture
 def client(mock_whisper):
     from fastapi.testclient import TestClient
-    from phonos_server.main import app
+
     from phonos_server.config import get_settings
+    from phonos_server.main import app
     from phonos_server.models import ModelManager
 
     settings = get_settings()
@@ -45,6 +47,7 @@ def client(mock_whisper):
 @pytest.fixture
 def client_with_auth(mock_whisper, monkeypatch):
     from fastapi.testclient import TestClient
+
     from phonos_server.config import Settings, get_settings
     from phonos_server.models import ModelManager
 
@@ -66,8 +69,8 @@ def auth_headers():
 
 @pytest.fixture
 def sample_wav():
-    import struct
     import io
+    import struct
 
     buf = io.BytesIO()
     sample_rate = 16000

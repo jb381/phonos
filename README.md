@@ -32,54 +32,30 @@ No cloud. No subscriptions. No latency spikes when the Wi-Fi gets moody.
 
 ## Quick start
 
-### Server (on your server / Docker host)
+### Server
 
 ```bash
 git clone https://github.com/jb381/phonos && cd phonos/apps/server
-cp .env.example .env        # optional: set PHONOS_AUTH_TOKEN
-docker compose up -d        # boom, transcription server on :8765
+cp .env.example .env          # optional: set PHONOS_AUTH_TOKEN
+docker compose up -d          # boom, transcription server on :8765
 ```
 
-Check it works:
-
-```bash
-curl http://localhost:8765/health
-```
-
-Run without Docker:
+Without Docker:
 
 ```bash
 uv sync
 uv run uvicorn phonos_server.main:app --host 0.0.0.0 --port 8765
 ```
 
-Run tests:
-
-```bash
-uv run pytest
-```
-
-### macOS Client
+### macOS client
 
 ```bash
 cd apps/macos
-
-# Build and launch the app bundle (recommended)
-./build.sh
+./build.sh                    # creates app bundle with permissions
 open .build/Phonos.app
-
-# Or run directly during development
-swift build
-swift run Phonos
 ```
 
-`swift run Phonos` is useful during development, but `./build.sh` creates the app bundle with the permission usage descriptions macOS expects.
-
-When first launched, grant:
-- **Microphone** — to capture audio for transcription
-- **Accessibility** — for paste automation
-
-Both in `System Settings → Privacy & Security`.
+Grant **Microphone** 🎤 and **Accessibility** ♿ in `System Settings → Privacy & Security`.
 
 ---
 
@@ -96,31 +72,31 @@ Both in `System Settings → Privacy & Security`.
 
 ## Requirements
 
-| Component | What you need |
-|-----------|--------------|
-| Server    | Docker, a CPU (or GPU if you're fancy) |
-| Client    | macOS 14+, Xcode 15+ |
-| Network   | [Tailscale](https://tailscale.com) (easy) or same LAN |
-| Permissions | Microphone 🎤 + Accessibility ♿ |
+| Component    | What you need                              |
+|--------------|--------------------------------------------|
+| Server       | Docker, a CPU (or GPU if you're fancy)     |
+| Client       | macOS 14+, Xcode 15+                       |
+| Network      | [Tailscale](https://tailscale.com) or same LAN |
 
 ---
 
 ## API
 
-| Method | Path             | Purpose                        |
-|--------|------------------|--------------------------------|
-| GET    | `/health`        | Server health + model info     |
-| GET    | `/models`        | List configured models         |
-| GET    | `/models/active` | Get currently loaded model     |
-| PUT    | `/models/active` | Switch active model            |
-| POST   | `/transcribe`    | Transcribe uploaded audio file |
+| Method | Path             | Purpose                    |
+|--------|------------------|----------------------------|
+| GET    | `/health`        | Server health + model info |
+| GET    | `/models`        | List configured models     |
+| GET    | `/models/active` | Get currently loaded model |
+| PUT    | `/models/active` | Switch active model        |
+| POST   | `/transcribe`    | Transcribe audio           |
+
+`PUT /models/active` and `POST /transcribe` require auth when `PHONOS_AUTH_TOKEN` is set.
 
 ---
 
 ## Server config
 
 ```env
-# .env
 PHONOS_HOST=0.0.0.0
 PHONOS_BIND=127.0.0.1
 PHONOS_PORT=8765
@@ -134,25 +110,25 @@ PHONOS_COMPUTE_TYPE=int8
 PHONOS_VAD_FILTER=true
 ```
 
-Docker Compose binds to `127.0.0.1` by default. If another machine needs to reach the server, set `PHONOS_BIND=0.0.0.0` and configure `PHONOS_AUTH_TOKEN`.
+Docker Compose binds to `127.0.0.1` by default. For remote access, set `PHONOS_BIND=0.0.0.0` and configure `PHONOS_AUTH_TOKEN`.
 
 ---
 
-## Model Guide
+## Models
 
 All models are English-optimized. Larger models are more accurate but slower and need more memory.
 
-| Model | Parameters | Strengths | Weaknesses | Best use |
-|-------|------------|-----------|------------|----------|
-| `tiny.en` | 39M | Fastest, lowest memory | Least accurate, struggles with noise/accents | Smoke tests, very weak hardware |
-| `base.en` | 74M | Fast, decent English quality | Noticeably less accurate than `small.en` | Quick dictation baseline |
-| `small.en` | 244M | Good quality/speed balance | Slower than `base.en` | **Recommended daily CPU dictation** |
-| `medium.en` | 769M | Better accuracy, handles harder speech | Much slower and heavier | Accuracy-focused dictation |
-| `turbo` | 798M | Newer speed-optimized Whisper, good quality | Multilingual; speed depends on hardware | Try when `small.en` is not accurate enough |
-| `distil-large-v3` | ~756M | Faster distilled large model, strong English candidate | May be less robust than full `large-v3` | Try when `small.en` is not accurate enough |
-| `large-v3` | 1550M | Highest quality, multilingual | Very slow on CPU, high memory | Only when quality matters more than latency |
+| Model             | Params | Notes                                 |
+|-------------------|--------|---------------------------------------|
+| `tiny.en`         | 39M    | Fastest, lowest memory                |
+| `base.en`         | 74M    | Fast, decent English quality          |
+| `small.en`        | 244M   | Good quality/speed — **recommended CPU daily driver** |
+| `medium.en`       | 769M   | Better accuracy, handles harder speech |
+| `turbo`           | 798M   | Speed-optimized, multilingual         |
+| `distil-large-v3` | 756M   | Distilled large, strong English       |
+| `large-v3`        | 1550M  | Highest quality, very slow on CPU     |
 
-For daily dictation, start with `small.en`. If it is not accurate enough, try `turbo` or `distil-large-v3`. Use `large-v3` only if you accept much slower CPU transcription.
+Start with `small.en`. Not accurate enough? Try `turbo` or `distil-large-v3`. `large-v3` if you hate yourself.
 
 ---
 
