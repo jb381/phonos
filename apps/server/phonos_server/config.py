@@ -4,8 +4,6 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    host: str = "0.0.0.0"
-    port: int = 8765
     auth_token: str = ""
     model: str = "base.en"
     models: str = "tiny.en,base.en,small.en,medium.en,large-v3,turbo,distil-large-v3"

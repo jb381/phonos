@@ -4,61 +4,60 @@ import pytest
 
 
 @pytest.fixture
-def mock_whisper():
-    with patch("phonos_server.models.WhisperModel") as mock:
-        instance = MagicMock()
-        instance.transcribe.return_value = (
-            [type("Seg", (), {"text": " hello world "})],
-            type("Info", (), {"language": "en", "duration": 2.5}),
-        )
-        mock.return_value = instance
-        yield mock
+def mock_model_manager():
+    """Provides a ModelManager with mocked subprocess worker.
 
-
-@pytest.fixture
-def mock_model_manager(mock_whisper):
+    Patches _start_worker and _stop_worker so no real subprocess is spawned.
+    Transcription returns canned results.
+    """
     from phonos_server.config import Settings
     from phonos_server.models import ModelManager
 
-    settings = Settings(auth_token="test-token")
-    manager = ModelManager(settings)
-    manager.load(settings.model)
-    return manager
+    with (
+        patch.object(ModelManager, "_start_worker", return_value=None),
+        patch.object(ModelManager, "_stop_worker", return_value=None),
+    ):
+        settings = Settings(auth_token="test-token")
+        manager = ModelManager(settings)
+        manager._model_name = settings.model
+
+        manager.transcribe = MagicMock(
+            return_value={
+                "text": "hello world",
+                "model": settings.model,
+                "language": "en",
+                "duration_seconds": 2.5,
+            }
+        )
+
+        yield manager
 
 
 @pytest.fixture
-def client(mock_whisper):
+def client(mock_model_manager):
     from fastapi.testclient import TestClient
 
+    import phonos_server.main as main_mod
     from phonos_server.config import get_settings
     from phonos_server.main import app
-    from phonos_server.models import ModelManager
 
-    settings = get_settings()
-    mgr = ModelManager(settings)
-    mgr.load(settings.model)
-
-    import phonos_server.main as main_mod
-    main_mod.manager = mgr
-
+    get_settings.cache_clear()
+    main_mod.manager = mock_model_manager
     return TestClient(app)
 
 
 @pytest.fixture
-def client_with_auth(mock_whisper, monkeypatch):
+def client_with_auth(mock_model_manager, monkeypatch):
     from fastapi.testclient import TestClient
 
-    from phonos_server.config import Settings, get_settings
-    from phonos_server.models import ModelManager
+    from phonos_server.config import get_settings
 
     monkeypatch.setenv("PHONOS_AUTH_TOKEN", "test-token")
     get_settings.cache_clear()
 
-    settings = Settings()
     import phonos_server.main as main_mod
-    main_mod.manager = ModelManager(settings)
-    main_mod.manager.load(settings.model)
 
+    main_mod.manager = mock_model_manager
     return TestClient(main_mod.app)
 
 

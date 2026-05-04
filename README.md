@@ -25,7 +25,7 @@ No cloud. No subscriptions. No latency spikes when the Wi-Fi gets moody.
 
 1. **Press a hotkey** — hold it down or toggle, your call.
 2. **Talk** — your Mac captures the audio.
-3. **Whisper transcribes** — your server runs `faster-whisper`, fully offline.
+3. **Whisper transcribes** — your server runs `faster-whisper` in a dedicated subprocess, fully offline.
 4. **Text appears** — pasted directly into whatever app you're using.
 
 ---
@@ -97,10 +97,7 @@ Grant **Microphone** 🎤 and **Accessibility** ♿ in `System Settings → Priv
 ## Server config
 
 ```env
-PHONOS_HOST=0.0.0.0
-PHONOS_BIND=127.0.0.1
-PHONOS_PORT=8765
-PHONOS_AUTH_TOKEN=
+PHONOS_AUTH_TOKEN=          # leave empty to skip auth
 
 PHONOS_MODEL=base.en
 PHONOS_MODELS=tiny.en,base.en,small.en,medium.en,large-v3,turbo,distil-large-v3
@@ -110,7 +107,11 @@ PHONOS_COMPUTE_TYPE=int8
 PHONOS_VAD_FILTER=true
 ```
 
-Docker Compose binds to `127.0.0.1` by default. For remote access, set `PHONOS_BIND=0.0.0.0` and configure `PHONOS_AUTH_TOKEN`.
+Docker Compose binds to `127.0.0.1` by default. For remote access, set `PHONOS_BIND=0.0.0.0` and `PHONOS_AUTH_TOKEN`.
+
+### Memory & model switching
+
+Each model runs in its own subprocess. When you switch models via `PUT /models/active`, the old subprocess is killed and a new one starts with the requested model. The operating system reclaims all memory from the old process — so switching from `medium.en` back to `tiny.en` actually frees the ~2 GB, rather than keeping it around.
 
 ---
 

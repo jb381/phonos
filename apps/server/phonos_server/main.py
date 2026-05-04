@@ -26,6 +26,7 @@ async def lifespan(app: FastAPI):
     manager = ModelManager(settings)
     manager.load(settings.model)
     yield
+    manager.shutdown()
 
 
 app = FastAPI(title="Phonos", version="0.1.0", lifespan=lifespan)

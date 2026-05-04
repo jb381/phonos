@@ -5,8 +5,6 @@ services:
     ports:
       - "${PHONOS_BIND:-127.0.0.1}:${PHONOS_PORT:-8765}:8765"
     environment:
-      - PHONOS_HOST=0.0.0.0
-      - PHONOS_PORT=8765
       - PHONOS_AUTH_TOKEN=${PHONOS_AUTH_TOKEN:-}
       - PHONOS_MODEL=${PHONOS_MODEL:-base.en}
       - PHONOS_MODELS=${PHONOS_MODELS:-tiny.en,base.en,small.en,medium.en,large-v3,turbo,distil-large-v3}
