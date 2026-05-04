@@ -84,6 +84,12 @@ open Phonos.dmg               # then drag to Applications
 Releases are triggered by `git tag vX.Y.Z && git push --tags` — CI builds, signs (ad-hoc), and publishes a DMG automatically.
 
 > **No Apple Developer account = ad-hoc signing.** Gatekeeper will complain on first launch — right-click the app and choose **Open**, or go to System Settings → Privacy & Security and click **Open Anyway**. Accessibility permission must be re-granted after each ad-hoc rebuild. Fork out $99/yr for an Apple Developer account and we can switch to proper Developer ID signing + notarization — contributions welcome.
+>
+> To silence Gatekeeper's whining from the terminal:
+> ```bash
+> xattr -dr com.apple.quarantine /Applications/Phonos.app
+> ```
+> *Yes, it's the macOS equivalent of "turn it off and on again." No, we don't have the $99 either.*
 
 ───
 
