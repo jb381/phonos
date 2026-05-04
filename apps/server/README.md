@@ -33,6 +33,11 @@ See `.env.example` for all environment variables.
 ## Run Without Docker
 
 ```bash
-pip install -e ".[dev]"
-uvicorn phonos_server.main:app --host 0.0.0.0 --port 8765
+uv sync
+uv run uvicorn phonos_server.main:app --host 0.0.0.0 --port 8765
+```
+
+To run tests:
+```bash
+uv run pytest
 ```

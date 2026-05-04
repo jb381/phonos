@@ -4,13 +4,16 @@ WORKDIR /app
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
-COPY pyproject.toml .
-COPY phonos_server/ phonos_server/
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
 
-RUN pip install --no-cache-dir .
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-dev
+
+COPY phonos_server/ phonos_server/
 
 EXPOSE 8765
 
-CMD ["uvicorn", "phonos_server.main:app", "--host", "0.0.0.0", "--port", "8765"]
+CMD ["uv", "run", "uvicorn", "phonos_server.main:app", "--host", "0.0.0.0", "--port", "8765"]

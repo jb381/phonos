@@ -24,9 +24,9 @@ phonos/
 
 ```bash
 cd apps/server
-# Copy and edit .env.example
 cp .env.example .env
-docker compose up -d
+uv sync --no-dev
+uv run uvicorn phonos_server.main:app --host 0.0.0.0 --port 8765
 ```
 
 ### Mac Client

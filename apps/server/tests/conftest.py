@@ -43,12 +43,15 @@ def client(mock_whisper):
 
 
 @pytest.fixture
-def client_with_auth(mock_whisper):
+def client_with_auth(mock_whisper, monkeypatch):
     from fastapi.testclient import TestClient
-    from phonos_server.config import get_settings
+    from phonos_server.config import Settings, get_settings
     from phonos_server.models import ModelManager
 
-    settings = get_settings()
+    monkeypatch.setenv("PHONOS_AUTH_TOKEN", "test-token")
+    get_settings.cache_clear()
+
+    settings = Settings()
     import phonos_server.main as main_mod
     main_mod.manager = ModelManager(settings)
     main_mod.manager.load(settings.model)

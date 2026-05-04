@@ -12,6 +12,7 @@ venv/
 *.xcworkspace/xcuserdata/
 DerivedData/
 *.app
+.build/
 
 # Docker
 .env

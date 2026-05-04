@@ -11,7 +11,7 @@ dependencies = [
     "pydantic-settings>=2.1.0",
 ]
 
-[project.optional-dependencies]
+[dependency-groups]
 dev = [
     "pytest>=8.0.0",
     "httpx>=0.26.0",
@@ -19,3 +19,6 @@ dev = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.uv]
+package = true
