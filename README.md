@@ -30,6 +30,28 @@ No cloud. No subscriptions. No latency spikes when the Wi-Fi gets moody.
 
 ---
 
+## Architecture
+
+The server runs each Whisper model in its own **dedicated subprocess**. The main FastAPI process stays lean (~50 MB) and communicates with the worker via local message queues.
+
+```
+┌──────────────────────┐     Queue     ┌──────────────────────┐
+│   FastAPI main       │ ◄──────────► │   Worker subprocess  │
+│   ~50 MB             │               │   WhisperModel       │
+│   • HTTP routes      │               │   • tiny.en  =  75 MB│
+│   • auth             │               │   • base.en  = 150 MB│
+│   • model lifecycle  │               │   • small.en = 500 MB│
+└──────────────────────┘               │   • medium.en= 1.5 GB│
+                                        │   • turbo    = 1.6 GB│
+                                        └──────────────────────┘
+```
+
+When you switch models via `PUT /models/active`, the old subprocess is killed and a new one spawns with the requested model. The operating system reclaims **every byte** from the old process — Python heap, CTranslate2 mmap regions, ONNX runtime buffers. Nothing lingers. Switch from `medium.en` to `tiny.en` and RSS drops by ~2 GB, guaranteed.
+
+This is the same pattern production ML serving systems use (one process per model instance), just without the Kubernetes.
+
+---
+
 ## Quick start
 
 ### Server
@@ -108,10 +130,6 @@ PHONOS_VAD_FILTER=true
 ```
 
 Docker Compose binds to `127.0.0.1` by default. For remote access, set `PHONOS_BIND=0.0.0.0` and `PHONOS_AUTH_TOKEN`.
-
-### Memory & model switching
-
-Each model runs in its own subprocess. When you switch models via `PUT /models/active`, the old subprocess is killed and a new one starts with the requested model. The operating system reclaims all memory from the old process — so switching from `medium.en` back to `tiny.en` actually frees the ~2 GB, rather than keeping it around.
 
 ---
 
