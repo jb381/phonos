@@ -19,6 +19,7 @@ def _worker_run(
     result_queue: mp.Queue,
 ):
     """Entry point for the model worker subprocess."""
+    logging.basicConfig(level=logging.INFO)
     os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
     signal.signal(signal.SIGINT, signal.SIG_IGN)
     signal.signal(signal.SIGTERM, signal.SIG_DFL)
@@ -106,9 +107,19 @@ class ModelManager:
         if self._process.is_alive():
             self._process.kill()
             self._process.join(timeout=5)
+        self._cleanup_queues()
         self._process = None
         self._cmd_queue = None
         self._result_queue = None
+
+    def _cleanup_queues(self):
+        for q in (self._cmd_queue, self._result_queue):
+            if q is not None:
+                try:
+                    q.close()
+                    q.join_thread()
+                except Exception:
+                    pass
 
     def shutdown(self):
         with self._lock:
