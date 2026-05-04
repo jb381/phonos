@@ -7,7 +7,7 @@ Local Whisper transcription server for the Phonos dictation system.
 ```bash
 # Copy environment config
 cp .env.example .env
-# Optional: edit .env to set AUTH_TOKEN
+# Optional: edit .env to set PHONOS_AUTH_TOKEN
 
 # Build and start
 docker compose up -d
@@ -29,6 +29,8 @@ curl http://localhost:8765/health
 ## Config
 
 See `.env.example` for all environment variables.
+
+Docker Compose binds to `127.0.0.1` by default. If another machine needs to reach the server, set `PHONOS_BIND=0.0.0.0` and configure `PHONOS_AUTH_TOKEN`.
 
 ## Run Without Docker
 

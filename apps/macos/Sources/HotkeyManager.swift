@@ -1,11 +1,6 @@
 import Cocoa
 import Carbon
 
-enum HotkeyMode {
-    case hold
-    case toggle
-}
-
 protocol HotkeyManagerDelegate: AnyObject {
     func hotkeyDidPress()
     func hotkeyDidRelease()
@@ -17,8 +12,6 @@ final class HotkeyManager {
     private var runLoopSource: CFRunLoopSource?
     private var isKeyDown = false
     private let targetKeyCode: CGKeyCode
-
-    var mode: HotkeyMode = .hold
 
     init(targetKeyCode: CGKeyCode = 0x3B) {
         self.targetKeyCode = targetKeyCode
@@ -75,16 +68,12 @@ final class HotkeyManager {
                 DispatchQueue.main.async { [weak self] in
                     self?.delegate?.hotkeyDidPress()
                 }
-                if mode == .hold {
-                    return nil
-                }
             }
+            return nil
         case .keyUp:
             isKeyDown = false
-            if mode == .hold {
-                DispatchQueue.main.async { [weak self] in
-                    self?.delegate?.hotkeyDidRelease()
-                }
+            DispatchQueue.main.async { [weak self] in
+                self?.delegate?.hotkeyDidRelease()
             }
             return nil
         default:

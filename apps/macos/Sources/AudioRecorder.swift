@@ -36,10 +36,10 @@ actor AudioRecorder {
         }
 
         let tempDir = FileManager.default.temporaryDirectory
-        let url = tempDir.appendingPathComponent("phonos_recording.wav")
+        let url = tempDir.appendingPathComponent("phonos_recording_\(UUID().uuidString).wav")
 
-        let inputNode = AVAudioEngine().inputNode
         let engine = AVAudioEngine()
+        let inputNode = engine.inputNode
 
         let format = inputNode.outputFormat(forBus: 0)
         let settings: [String: Any] = [
@@ -51,16 +51,13 @@ actor AudioRecorder {
             AVLinearPCMIsBigEndianKey: false,
         ]
 
-        outputFile = try AVAudioFile(forWriting: url, settings: settings, commonFormat: .pcmFormatInt16, interleaved: false)
+        let outputFile = try AVAudioFile(forWriting: url, settings: settings, commonFormat: .pcmFormatInt16, interleaved: false)
+        self.outputFile = outputFile
 
-        inputNode.installTap(onBus: 0, bufferSize: 4096, format: format) { [weak self] buffer, _ in
-            Task { [weak self] in
-                guard let self = self, let file = await self.outputFile else { return }
-                try? file.write(from: buffer)
-            }
+        inputNode.installTap(onBus: 0, bufferSize: 4096, format: format) { buffer, _ in
+            try? outputFile.write(from: buffer)
         }
 
-        engine.attach(inputNode)
         engine.prepare()
 
         do {

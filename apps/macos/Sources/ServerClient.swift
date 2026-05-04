@@ -29,8 +29,24 @@ struct TranscriptionResponse: Codable {
     let processing_seconds: Double
 }
 
-struct ErrorResponse: Codable {
-    let error: String
+struct ErrorResponse: Decodable {
+    let message: String
+
+    private enum CodingKeys: String, CodingKey {
+        case error
+        case detail
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        if let error = try container.decodeIfPresent(String.self, forKey: .error) {
+            message = error
+        } else if let detail = try container.decodeIfPresent(String.self, forKey: .detail) {
+            message = detail
+        } else {
+            message = "Unknown server error"
+        }
+    }
 }
 
 enum ServerError: LocalizedError {
@@ -87,7 +103,7 @@ actor ServerClient {
             }
             if http.statusCode >= 400 {
                 if let err = try? JSONDecoder().decode(ErrorResponse.self, from: data) {
-                    throw ServerError.serverError(err.error)
+                    throw ServerError.serverError(err.message)
                 }
                 throw ServerError.serverError("HTTP \(http.statusCode)")
             }
@@ -150,7 +166,7 @@ actor ServerClient {
             }
             if http.statusCode >= 400 {
                 if let err = try? JSONDecoder().decode(ErrorResponse.self, from: data) {
-                    throw ServerError.serverError(err.error)
+                    throw ServerError.serverError(err.message)
                 }
                 throw ServerError.serverError("HTTP \(http.statusCode)")
             }

@@ -3,7 +3,6 @@ import SwiftUI
 
 final class MenuBarController: NSObject, HotkeyManagerDelegate {
     private var statusItem: NSStatusItem?
-    private var popover: NSPopover?
     private let recorder = AudioRecorder()
     private let paster = PasteEngine()
     private var hotkeyManager: HotkeyManager?
@@ -21,8 +20,6 @@ final class MenuBarController: NSObject, HotkeyManagerDelegate {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         if let button = statusItem?.button {
             button.image = NSImage(systemSymbolName: "mic.fill", accessibilityDescription: "Phonos")
-            button.action = #selector(statusItemClicked)
-            button.sendAction(on: [.leftMouseUp, .rightMouseUp])
         }
         buildMenu()
     }
@@ -30,8 +27,8 @@ final class MenuBarController: NSObject, HotkeyManagerDelegate {
     private func buildMenu() {
         let menu = NSMenu()
 
-        let statusItem = NSMenuItem(title: "Server: checking...", action: nil, keyEquivalent: "")
-        menu.addItem(statusItem)
+        let statusMenuItem = NSMenuItem(title: "Server: checking...", action: nil, keyEquivalent: "")
+        menu.addItem(statusMenuItem)
 
         menu.addItem(.separator())
 
@@ -59,31 +56,44 @@ final class MenuBarController: NSObject, HotkeyManagerDelegate {
 
         statusItem?.menu = menu
 
-        // Update status asynchronously
         Task {
-            await updateConnectionStatus(statusItem)
+            await updateConnectionStatus(statusMenuItem)
         }
     }
 
+    @MainActor
     private func updateConnectionStatus(_ item: NSMenuItem) async {
         do {
             let health = try await ServerClient().healthCheck()
-            await MainActor.run {
-                item.title = "Server: \(health.model) (\(health.device))"
-            }
+            item.title = "Server: \(health.model) (\(health.device))"
         } catch {
-            await MainActor.run {
-                item.title = "Server: offline"
-            }
+            item.title = "Server: offline"
         }
     }
 
     // MARK: - Hotkey
 
     private func setupHotkey() {
-        hotkeyManager = HotkeyManager()
+        startHotkey()
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(hotkeySettingChanged),
+            name: .hotkeyChanged,
+            object: nil
+        )
+    }
+
+    @objc private func hotkeySettingChanged() {
+        hotkeyManager?.stop()
+        startHotkey()
+    }
+
+    private func startHotkey() {
+        hotkeyManager = HotkeyManager(targetKeyCode: CGKeyCode(settings.hotkeyKeyCode))
         hotkeyManager?.delegate = self
-        if !(hotkeyManager?.start() ?? false) {
+        if hotkeyManager?.start() ?? false {
+        } else if !AXIsProcessTrusted(),
+                  !UserDefaults.standard.bool(forKey: "accessibility_alert_shown") {
             showAccessibilityAlert()
         }
     }
@@ -173,17 +183,10 @@ final class MenuBarController: NSObject, HotkeyManagerDelegate {
 
     @MainActor
     private func updateRecordingUI(_ recording: Bool) {
-        if recording {
-            statusItem?.button?.image = NSImage(
-                systemSymbolName: "mic.circle.fill",
-                accessibilityDescription: "Recording"
-            )
-        } else {
-            statusItem?.button?.image = NSImage(
-                systemSymbolName: "mic.fill",
-                accessibilityDescription: "Phonos"
-            )
-        }
+        statusItem?.button?.image = NSImage(
+            systemSymbolName: recording ? "mic.circle.fill" : "mic.fill",
+            accessibilityDescription: "Phonos"
+        )
 
         if let menu = statusItem?.menu {
             for item in menu.items where item.action == #selector(toggleRecording) {
@@ -221,6 +224,7 @@ final class MenuBarController: NSObject, HotkeyManagerDelegate {
             alert.alertStyle = .warning
             alert.addButton(withTitle: "Open Settings")
             alert.addButton(withTitle: "Later")
+            UserDefaults.standard.set(true, forKey: "accessibility_alert_shown")
             if alert.runModal() == .alertFirstButtonReturn {
                 NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!)
             }
@@ -229,10 +233,28 @@ final class MenuBarController: NSObject, HotkeyManagerDelegate {
 
     // MARK: - Actions
 
-    @objc private func statusItemClicked() {}
+    private var settingsWindow: NSWindow?
 
     @objc private func openSettings() {
-        NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+        if let window = settingsWindow {
+            window.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+            return
+        }
+
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 380, height: 320),
+            styleMask: [.titled, .closable, .miniaturizable],
+            backing: .buffered,
+            defer: false
+        )
+        window.title = "Phonos Settings"
+        window.center()
+        window.contentView = NSHostingView(rootView: SettingsView())
+        window.isReleasedWhenClosed = false
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+        settingsWindow = window
     }
 
     @objc private func quitApp() {

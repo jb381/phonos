@@ -3,7 +3,7 @@ services:
     build: .
     container_name: phonos-server
     ports:
-      - "${PHONOS_PORT:-8765}:8765"
+      - "${PHONOS_BIND:-127.0.0.1}:${PHONOS_PORT:-8765}:8765"
     environment:
       - PHONOS_HOST=0.0.0.0
       - PHONOS_PORT=8765

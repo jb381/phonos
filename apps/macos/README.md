@@ -14,10 +14,20 @@ Native macOS menu-bar app for the Phonos dictation system.
 # Open in Xcode
 open Package.swift
 
-# Or build from CLI
-swift build
-swift run
+# Or build the app bundle from CLI
+./build.sh
 ```
+
+## Command Line
+
+From this directory, you can build and launch the app directly:
+
+```bash
+swift build
+swift run Phonos
+```
+
+`swift run Phonos` is useful during development, but `./build.sh` creates the app bundle with the permission usage descriptions macOS expects.
 
 ## Features
 
