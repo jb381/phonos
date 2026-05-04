@@ -16,4 +16,6 @@ COPY phonos_server/ phonos_server/
 
 EXPOSE 8765
 
-CMD ["uv", "run", "uvicorn", "phonos_server.main:app", "--host", "0.0.0.0", "--port", "8765"]
+ENV PHONOS_PORT=8765
+
+CMD uv run uvicorn phonos_server.main:app --host 0.0.0.0 --port ${PHONOS_PORT}

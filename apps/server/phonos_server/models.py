@@ -141,6 +141,8 @@ class ModelManager:
             msg = self._result_queue.get(timeout=REQUEST_TIMEOUT)
             if msg.get("type") == "error":
                 raise RuntimeError(msg.get("message", "Transcription failed"))
+            if "text" not in msg:
+                raise RuntimeError(f"Unexpected worker response: {msg}")
             return {
                 "text": msg["text"],
                 "model": self._model_name,

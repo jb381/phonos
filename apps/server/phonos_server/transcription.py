@@ -1,3 +1,4 @@
+import contextlib
 import logging
 import os
 import tempfile
@@ -51,7 +52,8 @@ async def transcribe_audio(
         result = manager.transcribe(tmp_path)
         result["processing_seconds"] = round(time.time() - start, 2)
         logger.info(
-            "Transcription complete: model=%s language=%s duration_seconds=%s processing_seconds=%s text=%r",
+            "Transcription complete: model=%s language=%s duration_seconds=%s "
+            "processing_seconds=%s text=%r",
             result.get("model"),
             result.get("language"),
             result.get("duration_seconds"),
@@ -60,12 +62,10 @@ async def transcribe_audio(
         )
         return result
     except RuntimeError as e:
-        raise HTTPException(status_code=503, detail=str(e))
+        raise HTTPException(status_code=503, detail=str(e)) from e
     except Exception:
         logger.exception("Transcription failed")
-        raise HTTPException(status_code=500, detail="Transcription failed")
+        raise HTTPException(status_code=500, detail="Transcription failed") from None
     finally:
-        try:
+        with contextlib.suppress(OSError):
             os.unlink(tmp_path)
-        except OSError:
-            pass

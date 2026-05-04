@@ -149,9 +149,6 @@ struct SettingsView: View {
             await MainActor.run {
                 scanResults = results
                 isScanning = false
-                if let first = results.first {
-                    settings.serverURL = first.url
-                }
             }
         }
     }

@@ -18,13 +18,13 @@ actor NetworkScanner {
         guard getifaddrs(&addrList) == 0, let first = addrList else { return nil }
         defer { freeifaddrs(addrList) }
 
-        var ptr = first
-        while ptr.pointee.ifa_next != nil {
-            let name = String(cString: ptr.pointee.ifa_name)
+        var ptr: UnsafeMutablePointer<ifaddrs>? = first
+        while ptr != nil {
+            let name = String(cString: ptr!.pointee.ifa_name)
             if name == "en0" || name == "en1" {
-                let family = ptr.pointee.ifa_addr.pointee.sa_family
+                let family = ptr!.pointee.ifa_addr.pointee.sa_family
                 if family == AF_INET {
-                    let addr = ptr.pointee.ifa_addr.withMemoryRebound(to: sockaddr_in.self, capacity: 1) { $0.pointee }
+                    let addr = ptr!.pointee.ifa_addr.withMemoryRebound(to: sockaddr_in.self, capacity: 1) { $0.pointee }
                     var buf = [CChar](repeating: 0, count: Int(INET_ADDRSTRLEN))
                     var addrCopy = addr.sin_addr
                     inet_ntop(AF_INET, &addrCopy, &buf, socklen_t(INET_ADDRSTRLEN))
@@ -35,7 +35,7 @@ actor NetworkScanner {
                     }
                 }
             }
-            ptr = ptr.pointee.ifa_next
+            ptr = ptr!.pointee.ifa_next
         }
         return nil
     }

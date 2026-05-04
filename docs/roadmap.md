@@ -206,11 +206,9 @@
 ### Server Environment Variables
 
 ```env
-PHONOS_HOST=0.0.0.0          # Bind address
-PHONOS_PORT=8765             # Server port
 PHONOS_AUTH_TOKEN=           # Optional: Bearer token for API auth
 PHONOS_MODEL=base.en         # Default model on startup
-PHONOS_MODELS=...            # Comma-separated available models
+PHONOS_MODELS=tiny.en,base.en,small.en,medium.en,large-v3,turbo,distil-large-v3  # Available models
 PHONOS_DEVICE=cpu            # Device: cpu or cuda
 PHONOS_COMPUTE_TYPE=int8     # Compute type for faster-whisper
 PHONOS_VAD_FILTER=true       # Enable voice activity detection

@@ -75,6 +75,28 @@ actor ServerClient {
         self.session = URLSession(configuration: config)
     }
 
+    private func authHeader(for request: inout URLRequest) {
+        if !settings.authToken.isEmpty {
+            request.setValue("Bearer \(settings.authToken)", forHTTPHeaderField: "Authorization")
+        }
+    }
+
+    private func handleResponse(data: Data, response: URLResponse) throws -> Data {
+        guard let http = response as? HTTPURLResponse else {
+            throw ServerError.invalidResponse
+        }
+        if http.statusCode == 401 {
+            throw ServerError.unauthorized
+        }
+        if http.statusCode >= 400 {
+            if let err = try? JSONDecoder().decode(ErrorResponse.self, from: data) {
+                throw ServerError.serverError(err.message)
+            }
+            throw ServerError.serverError("HTTP \(http.statusCode)")
+        }
+        return data
+    }
+
     private func request(_ path: String, method: String = "GET", body: Data? = nil) async throws -> Data {
         guard let url = URL(string: "\(settings.baseURL)\(path)") else {
             throw ServerError.connectionFailed("Invalid URL")
@@ -83,10 +105,7 @@ actor ServerClient {
         var req = URLRequest(url: url)
         req.httpMethod = method
         req.setValue("application/json", forHTTPHeaderField: "Accept")
-
-        if !settings.authToken.isEmpty {
-            req.setValue("Bearer \(settings.authToken)", forHTTPHeaderField: "Authorization")
-        }
+        authHeader(for: &req)
 
         if let body = body {
             req.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -95,19 +114,7 @@ actor ServerClient {
 
         do {
             let (data, response) = try await session.data(for: req)
-            guard let http = response as? HTTPURLResponse else {
-                throw ServerError.invalidResponse
-            }
-            if http.statusCode == 401 {
-                throw ServerError.unauthorized
-            }
-            if http.statusCode >= 400 {
-                if let err = try? JSONDecoder().decode(ErrorResponse.self, from: data) {
-                    throw ServerError.serverError(err.message)
-                }
-                throw ServerError.serverError("HTTP \(http.statusCode)")
-            }
-            return data
+            return try handleResponse(data: data, response: response)
         } catch let e as ServerError {
             throw e
         } catch {
@@ -140,10 +147,7 @@ actor ServerClient {
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
         req.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
-
-        if !settings.authToken.isEmpty {
-            req.setValue("Bearer \(settings.authToken)", forHTTPHeaderField: "Authorization")
-        }
+        authHeader(for: &req)
 
         let fileData = try Data(contentsOf: fileURL)
         let filename = fileURL.lastPathComponent
@@ -158,18 +162,7 @@ actor ServerClient {
 
         do {
             let (data, response) = try await session.data(for: req)
-            guard let http = response as? HTTPURLResponse else {
-                throw ServerError.invalidResponse
-            }
-            if http.statusCode == 401 {
-                throw ServerError.unauthorized
-            }
-            if http.statusCode >= 400 {
-                if let err = try? JSONDecoder().decode(ErrorResponse.self, from: data) {
-                    throw ServerError.serverError(err.message)
-                }
-                throw ServerError.serverError("HTTP \(http.statusCode)")
-            }
+            let _ = try handleResponse(data: data, response: response)
             return try JSONDecoder().decode(TranscriptionResponse.self, from: data)
         } catch let e as ServerError {
             throw e

@@ -52,11 +52,9 @@ Components communicate over Tailscale or local network. No traffic leaves the LA
 **Default Configuration**:
 
 ```env
-PHONOS_HOST=0.0.0.0
-PHONOS_PORT=8765
 PHONOS_AUTH_TOKEN=
 PHONOS_MODEL=base.en
-PHONOS_MODELS=tiny.en,base.en,small.en,medium.en
+PHONOS_MODELS=tiny.en,base.en,small.en,medium.en,large-v3,turbo,distil-large-v3
 PHONOS_DEVICE=cpu
 PHONOS_COMPUTE_TYPE=int8
 PHONOS_VAD_FILTER=true
