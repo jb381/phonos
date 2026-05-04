@@ -13,18 +13,18 @@
 - [x] Write `README.md` with project overview
 - [x] Write `docs/architecture.md` with component design
 - [x] Write `docs/roadmap.md` (this file)
-- [ ] Write `packages/protocol/openapi.yaml` — shared API specification
-- [ ] Create `apps/server/` skeleton:
+- [x] Write `packages/protocol/openapi.yaml` — shared API specification
+- [x] Create `apps/server/` skeleton:
   - `pyproject.toml` with dependencies
   - `Dockerfile`
   - `docker-compose.yml`
   - `.env.example`
   - `README.md`
-- [ ] Create `apps/macos/` skeleton:
+- [x] Create `apps/macos/` skeleton:
   - Xcode project or `Package.swift`
   - `README.md`
 
-**Commit**: `feat: bootstrap monorepo structure and documentation`
+**Commit**: `93f3e40` — `feat: bootstrap phonos monorepo with server and mac client`
 
 ---
 
@@ -34,14 +34,14 @@
 
 ### 2.1 Core Server
 
-- [ ] FastAPI application with uvicorn
-- [ ] Configuration via environment variables
-- [ ] `GET /health` — returns model status and uptime
-- [ ] `GET /models` — lists configured model names
-- [ ] `GET /models/active` — returns currently loaded model
-- [ ] `PUT /models/active` — switches active model with lock safety
-- [ ] `POST /transcribe` — accepts multipart audio, returns transcription
-- [ ] Optional token-based authentication (`PHONOS_AUTH_TOKEN`)
+- [x] FastAPI application with uvicorn
+- [x] Configuration via environment variables
+- [x] `GET /health` — returns model status and uptime
+- [x] `GET /models` — lists configured model names
+- [x] `GET /models/active` — returns currently loaded model
+- [x] `PUT /models/active` — switches active model with lock safety
+- [x] `POST /transcribe` — accepts multipart audio, returns transcription
+- [x] Optional token-based authentication (`PHONOS_AUTH_TOKEN`)
 
 **Details**:
 - Use `faster-whisper` for transcription
@@ -53,11 +53,11 @@
 
 ### 2.2 Docker Deployment
 
-- [ ] `Dockerfile` — Python 3.11 slim, server dependencies
-- [ ] `docker-compose.yml` — single service, env vars, port mapping
-- [ ] `.env.example` — all config vars with comments
-- [ ] Model cache volume mount for persistence
-- [ ] Health check in compose
+- [x] `Dockerfile` — Python 3.11 slim, server dependencies
+- [x] `docker-compose.yml` — single service, env vars, port mapping
+- [x] `.env.example` — all config vars with comments
+- [x] Model cache volume mount for persistence
+- [x] Health check in compose
 
 ### 2.3 Tests
 
@@ -67,7 +67,7 @@
 - [ ] Test model switching
 - [ ] Test auth token rejection
 
-**Commit**: `feat(server): implement transcription API with faster-whisper`
+**Commit**: `93f3e40` — `feat: bootstrap phonos monorepo with server and mac client`
 
 ---
 
@@ -77,24 +77,24 @@
 
 ### 3.1 App Shell
 
-- [ ] SwiftUI/AppKit menu-bar app
-- [ ] Status item in menu bar with icon
-- [ ] Menu with app actions
-- [ ] Settings window/popover:
+- [x] SwiftUI/AppKit menu-bar app
+- [x] Status item in menu bar with icon
+- [x] Menu with app actions
+- [x] Settings window/popover:
   - Server URL
   - Auth token
   - Hotkey preference
-- [ ] Connection status indicator
+- [x] Connection status indicator
 
 ### 3.2 Server Integration
 
-- [ ] Health check on app launch and settings change
-- [ ] Fetch model list from server
-- [ ] Model selector in settings
-- [ ] Set active model on server
-- [ ] Display server status (online/offline/error)
+- [x] Health check on app launch and settings change
+- [x] Fetch model list from server
+- [x] Model selector in settings
+- [x] Set active model on server
+- [x] Display server status (online/offline/error)
 
-**Commit**: `feat(macos): menu-bar app shell with server settings`
+**Commit**: `93f3e40` — `feat: bootstrap phonos monorepo with server and mac client`
 
 ---
 
@@ -104,19 +104,19 @@
 
 ### 4.1 Audio Capture
 
-- [ ] Request microphone permission
-- [ ] Configure `AVAudioEngine` for microphone input
-- [ ] Record audio to temp WAV file
-- [ ] Recording indicator (status item change, audio level)
+- [x] Request microphone permission
+- [x] Configure `AVAudioEngine` for microphone input
+- [x] Record audio to temp WAV file
+- [x] Recording indicator (status item change, audio level)
 
 ### 4.2 Transcription Upload
 
-- [ ] Upload recorded audio to `POST /transcribe`
-- [ ] Handle server errors (offline, auth failure, model loading)
-- [ ] Display transcript in menu UI
-- [ ] Show transcription metadata (duration, processing time, model)
+- [x] Upload recorded audio to `POST /transcribe`
+- [x] Handle server errors (offline, auth failure, model loading)
+- [x] Display transcript in menu UI
+- [x] Show transcription metadata (duration, processing time, model)
 
-**Commit**: `feat(macos): audio recording and transcription upload`
+**Commit**: `93f3e40` — `feat: bootstrap phonos monorepo with server and mac client`
 
 ---
 
@@ -126,20 +126,20 @@
 
 ### 5.1 Hotkey Implementation
 
-- [ ] Request Accessibility permission
-- [ ] Implement low-level keyboard event tap
-- [ ] Attempt `Fn`/`Globe` key detection
-- [ ] Fall back to left `Control` key
-- [ ] Configurable backup shortcut in settings
+- [x] Request Accessibility permission
+- [x] Implement low-level keyboard event tap
+- [ ] Attempt `Fn`/`Globe` key detection (needs runtime testing)
+- [x] Fall back to left `Control` key
+- [x] Configurable backup shortcut in settings
 
 ### 5.2 Recording Modes
 
-- [ ] Hold-to-record: key-down starts, key-up stops and transcribes
-- [ ] Toggle recording: key press toggles recording on/off
-- [ ] Mode selection in settings
-- [ ] Visual feedback for recording state
+- [x] Hold-to-record: key-down starts, key-up stops and transcribes
+- [x] Toggle recording: key press toggles recording on/off
+- [x] Mode selection in settings
+- [x] Visual feedback for recording state
 
-**Commit**: `feat(macos): global hotkey with hold/toggle recording`
+**Commit**: `93f3e40` — `feat: bootstrap phonos monorepo with server and mac client`
 
 ---
 
@@ -147,13 +147,13 @@
 
 **Goal**: Transcript appears in the active application.
 
-- [ ] Accessibility permission for paste automation
-- [ ] Copy transcript to clipboard
-- [ ] Simulate `Cmd+V` in frontmost application
-- [ ] Attempt clipboard restoration after paste
-- [ ] Fallback: clipboard-only mode if accessibility not granted
+- [x] Accessibility permission for paste automation
+- [x] Copy transcript to clipboard
+- [x] Simulate `Cmd+V` in frontmost application
+- [x] Attempt clipboard restoration after paste
+- [x] Fallback: clipboard-only mode if accessibility not granted
 
-**Commit**: `feat(macos): direct paste transcript into active app`
+**Commit**: `93f3e40` — `feat: bootstrap phonos monorepo with server and mac client`
 
 ---
 
@@ -161,13 +161,13 @@
 
 **Goal**: Change Whisper models from the Mac app.
 
-- [ ] List server models in settings UI
-- [ ] Select model from dropdown/picker
-- [ ] Send `PUT /models/active` to server
-- [ ] Show model change confirmation and new model info
-- [ ] Handle model loading errors gracefully
+- [x] List server models in settings UI
+- [x] Select model from dropdown/picker
+- [x] Send `PUT /models/active` to server
+- [x] Show model change confirmation and new model info
+- [x] Handle model loading errors gracefully
 
-**Commit**: `feat(macos): model selection from client`
+**Commit**: `93f3e40` — `feat: bootstrap phonos monorepo with server and mac client`
 
 ---
 
