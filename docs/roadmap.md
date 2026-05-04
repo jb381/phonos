@@ -61,13 +61,13 @@
 
 ### 2.3 Tests
 
-- [ ] Test `/health` endpoint
-- [ ] Test `/models` and `/models/active` endpoints
-- [ ] Test `/transcribe` with known audio sample
-- [ ] Test model switching
-- [ ] Test auth token rejection
+- [x] Test `/health` endpoint
+- [x] Test `/models` and `/models/active` endpoints
+- [x] Test `/transcribe` with known audio sample
+- [x] Test model switching
+- [x] Test auth token rejection
 
-**Commit**: `93f3e40` — `feat: bootstrap phonos monorepo with server and mac client`
+**Commit**: `79b98a8` — `test(server): add API tests for health, models, transcribe, auth`
 
 ---
 
@@ -175,16 +175,16 @@
 
 **Goal**: Production-ready deployment documentation and error handling.
 
-- [ ] Write `docs/deployment.md` — Tailscale + Docker setup guide
-- [ ] Tailscale MagicDNS configuration
-- [ ] Firewall recommendations
-- [ ] Token auth setup guide
-- [ ] Model recommendations for CPU (speed vs accuracy table)
-- [ ] Better error states in Mac app (offline, loading, errors)
-- [ ] Logging and observability
-- [ ] Server startup script / systemd service example
+- [x] Write `docs/deployment.md` — Tailscale + Docker setup guide
+- [x] Tailscale MagicDNS configuration
+- [x] Firewall recommendations
+- [x] Token auth setup guide
+- [x] Model recommendations for CPU (speed vs accuracy table)
+- [x] Better error states in Mac app (offline, loading, errors)
+- [x] Logging and observability
+- [x] Server startup script / systemd service example
 
-**Commit**: `docs: deployment guide and hardening`
+**Commit**: `0881d69` — `docs: add deployment guide for Tailscale/Docker/local network`
 
 ---
 
