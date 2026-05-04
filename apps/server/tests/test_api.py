@@ -1,0 +1,119 @@
+class TestHealth:
+    def test_health_ok(self, client):
+        response = client.get("/health")
+        assert response.status_code == 200
+        data = response.json()
+        assert "status" in data
+        assert "model" in data
+        assert "device" in data
+        assert "compute_type" in data
+
+    def test_health_returns_active_model(self, client):
+        response = client.get("/health")
+        data = response.json()
+        assert data["model"] == "base.en"
+
+
+class TestModels:
+    def test_list_models(self, client):
+        response = client.get("/models")
+        assert response.status_code == 200
+        data = response.json()
+        assert "models" in data
+        assert "active" in data
+        assert "base.en" in data["models"]
+
+    def test_get_active_model(self, client):
+        response = client.get("/models/active")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["model"] == "base.en"
+        assert data["status"] == "loaded"
+
+
+class TestModelSwitch:
+    def test_set_active_model_valid(self, client_with_auth, auth_headers):
+        response = client_with_auth.put(
+            "/models/active",
+            json={"model": "tiny.en"},
+            headers=auth_headers,
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["model"] == "tiny.en"
+        assert data["status"] == "loaded"
+
+    def test_set_active_model_invalid(self, client_with_auth, auth_headers):
+        response = client_with_auth.put(
+            "/models/active",
+            json={"model": "nonexistent.en"},
+            headers=auth_headers,
+        )
+        assert response.status_code == 400
+
+    def test_set_active_model_no_body(self, client_with_auth, auth_headers):
+        response = client_with_auth.put(
+            "/models/active",
+            headers=auth_headers,
+        )
+        assert response.status_code == 422
+
+
+class TestTranscribe:
+    def test_transcribe_wav(self, client_with_auth, auth_headers, sample_wav):
+        response = client_with_auth.post(
+            "/transcribe",
+            files={"file": ("test.wav", sample_wav, "audio/wav")},
+            headers=auth_headers,
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert "text" in data
+        assert data["model"] == "base.en"
+        assert data["language"] == "en"
+        assert "duration_seconds" in data
+        assert "processing_seconds" in data
+
+    def test_transcribe_empty_file(self, client_with_auth, auth_headers):
+        response = client_with_auth.post(
+            "/transcribe",
+            files={"file": ("empty.wav", b"", "audio/wav")},
+            headers=auth_headers,
+        )
+        assert response.status_code == 400
+
+    def test_transcribe_unsupported_format(self, client_with_auth, auth_headers, sample_wav):
+        response = client_with_auth.post(
+            "/transcribe",
+            files={"file": ("test.txt", sample_wav, "text/plain")},
+            headers=auth_headers,
+        )
+        assert response.status_code == 400
+
+
+class TestAuth:
+    def test_no_auth_when_not_configured(self, client):
+        """Client without token configured should work without auth header."""
+        response = client.get("/models")
+        assert response.status_code == 200
+
+    def test_auth_required_for_protected(self, client_with_auth):
+        """With token configured, protected endpoints require auth."""
+        response = client_with_auth.put(
+            "/models/active",
+            json={"model": "tiny.en"},
+        )
+        assert response.status_code == 401
+
+    def test_invalid_token_rejected(self, client_with_auth):
+        response = client_with_auth.put(
+            "/models/active",
+            json={"model": "tiny.en"},
+            headers={"Authorization": "Bearer wrong-token"},
+        )
+        assert response.status_code == 401
+
+    def test_health_is_unprotected(self, client_with_auth):
+        """Health endpoint should not require auth."""
+        response = client_with_auth.get("/health")
+        assert response.status_code == 200
