@@ -1,5 +1,13 @@
 import Cocoa
-import Carbon
+import KeyboardShortcuts
+
+extension KeyboardShortcuts.Name {
+    static let record = Self("record", default: .init(.space, modifiers: [.control]))
+}
+
+extension KeyboardShortcuts.Shortcut {
+    static let phonosDefaultRecord = Self(.space, modifiers: [.control])
+}
 
 @MainActor
 protocol HotkeyManagerDelegate: AnyObject {
@@ -7,80 +15,42 @@ protocol HotkeyManagerDelegate: AnyObject {
     func hotkeyDidRelease()
 }
 
+@MainActor
 final class HotkeyManager {
     weak var delegate: HotkeyManagerDelegate?
-    private var eventTap: CFMachPort?
-    private var runLoopSource: CFRunLoopSource?
-    private var isKeyDown = false
-    private let targetKeyCode: CGKeyCode
+    private let migrationKey = "recordShortcutDisabledMigrationDone"
 
-    init(targetKeyCode: CGKeyCode = 0x3B) {
-        self.targetKeyCode = targetKeyCode
-    }
+    init() {}
 
     func start() -> Bool {
-        guard AXIsProcessTrusted() else { return false }
+        migrateDisabledShortcutIfNeeded()
 
-        let eventMask: CGEventMask =
-            (1 << CGEventType.keyDown.rawValue) |
-            (1 << CGEventType.keyUp.rawValue)
-
-        let callback: CGEventTapCallBack = { (_, type, event, refcon) in
-            let manager = Unmanaged<HotkeyManager>.fromOpaque(refcon!).takeUnretainedValue()
-            return manager.handleEvent(type: type, event: event)
+        KeyboardShortcuts.removeHandler(for: .record)
+        KeyboardShortcuts.onKeyDown(for: .record) { [weak self] in
+            Task { @MainActor [weak self] in
+                self?.delegate?.hotkeyDidPress()
+            }
         }
-
-        eventTap = CGEvent.tapCreate(
-            tap: .cgSessionEventTap,
-            place: .headInsertEventTap,
-            options: .defaultTap,
-            eventsOfInterest: eventMask,
-            callback: callback,
-            userInfo: Unmanaged.passUnretained(self).toOpaque()
-        )
-
-        guard let tap = eventTap else { return false }
-        runLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0)
-        CFRunLoopAddSource(CFRunLoopGetCurrent(), runLoopSource, .commonModes)
-        CGEvent.tapEnable(tap: tap, enable: true)
+        KeyboardShortcuts.onKeyUp(for: .record) { [weak self] in
+            Task { @MainActor [weak self] in
+                self?.delegate?.hotkeyDidRelease()
+            }
+        }
         return true
     }
 
     func stop() {
-        if let tap = eventTap {
-            CGEvent.tapEnable(tap: tap, enable: false)
-        }
-        if let source = runLoopSource {
-            CFRunLoopRemoveSource(CFRunLoopGetCurrent(), source, .commonModes)
-        }
-        eventTap = nil
-        runLoopSource = nil
+        KeyboardShortcuts.removeHandler(for: .record)
     }
 
-    private func handleEvent(type: CGEventType, event: CGEvent) -> Unmanaged<CGEvent>? {
-        guard event.getIntegerValueField(.keyboardEventKeycode) == Int64(targetKeyCode) else {
-            return Unmanaged.passUnretained(event)
+    private func migrateDisabledShortcutIfNeeded() {
+        guard !UserDefaults.standard.bool(forKey: migrationKey) else { return }
+
+        if KeyboardShortcuts.getShortcut(for: .record) == nil,
+           UserDefaults.standard.object(forKey: "KeyboardShortcuts_record") != nil {
+            KeyboardShortcuts.setShortcut(.phonosDefaultRecord, for: .record)
         }
 
-        switch type {
-        case .keyDown:
-            if !isKeyDown {
-                isKeyDown = true
-                DispatchQueue.main.async { [weak self] in
-                    self?.delegate?.hotkeyDidPress()
-                }
-            }
-            return nil
-        case .keyUp:
-            isKeyDown = false
-            DispatchQueue.main.async { [weak self] in
-                self?.delegate?.hotkeyDidRelease()
-            }
-            return nil
-        default:
-            break
-        }
-
-        return Unmanaged.passUnretained(event)
+        UserDefaults.standard.set(true, forKey: migrationKey)
     }
 }

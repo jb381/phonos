@@ -32,7 +32,7 @@ swift run Phonos
 ## Features
 
 - Menu-bar status item with connection indicator
-- Global hotkey support (Fn/Globe → left Control)
+- Global hotkey support (Control-Space by default)
 - Hold-to-record and toggle recording modes
 - Direct paste into active application
 - Model selector from server

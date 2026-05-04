@@ -30,15 +30,26 @@ cat > "$APP_DIR/Contents/Info.plist" << 'PLIST'
     <key>LSUIElement</key>
     <true/>
     <key>NSAppleEventsUsageDescription</key>
-    <string>Phonos needs Accessibility access for global hotkey detection and paste automation.</string>
+    <string>Phonos needs Accessibility access for paste automation.</string>
     <key>NSMicrophoneUsageDescription</key>
     <string>Phonos needs microphone access to capture audio for transcription.</string>
 </dict>
 </plist>
 PLIST
 
-# Give the local bundle a stable code-signing identity for macOS privacy permissions.
-codesign --force --deep --sign - "$APP_DIR"
+SIGN_IDENTITY="${PHONOS_CODESIGN_IDENTITY:-}"
+if [ -z "$SIGN_IDENTITY" ]; then
+    SIGN_IDENTITY=$(security find-identity -v -p codesigning | awk '/Phonos Local Development|Apple Development|Developer ID Application|Mac Developer/ { print $2; exit }')
+fi
+
+if [ -n "$SIGN_IDENTITY" ]; then
+    echo "Signing with: $SIGN_IDENTITY"
+    codesign --force --deep --sign "$SIGN_IDENTITY" "$APP_DIR"
+else
+    echo "Warning: no stable code-signing identity found; using ad-hoc signing."
+    echo "Accessibility permission may need to be re-granted after each rebuild."
+    codesign --force --deep --sign - "$APP_DIR"
+fi
 
 echo ""
 echo "=== Build complete ==="

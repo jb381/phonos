@@ -2,7 +2,7 @@ import Cocoa
 import SwiftUI
 
 @MainActor
-final class MenuBarController: NSObject, HotkeyManagerDelegate {
+final class MenuBarController: NSObject, NSWindowDelegate, HotkeyManagerDelegate {
     private var statusItem: NSStatusItem?
     private let recorder = AudioRecorder()
     private let paster = PasteEngine()
@@ -21,6 +21,7 @@ final class MenuBarController: NSObject, HotkeyManagerDelegate {
 
     deinit {
         NSWorkspace.shared.notificationCenter.removeObserver(self)
+        NotificationCenter.default.removeObserver(self)
     }
 
     private func startTrackingPasteTarget() {
@@ -119,25 +120,21 @@ final class MenuBarController: NSObject, HotkeyManagerDelegate {
         startHotkey()
         NotificationCenter.default.addObserver(
             self,
-            selector: #selector(hotkeySettingChanged),
-            name: .hotkeyChanged,
+            selector: #selector(recordShortcutChanged),
+            name: .recordShortcutChanged,
             object: nil
         )
     }
 
-    @objc private func hotkeySettingChanged() {
+    @objc private func recordShortcutChanged() {
         hotkeyManager?.stop()
         startHotkey()
     }
 
     private func startHotkey() {
-        hotkeyManager = HotkeyManager(targetKeyCode: CGKeyCode(settings.hotkeyKeyCode))
+        hotkeyManager = HotkeyManager()
         hotkeyManager?.delegate = self
-        if hotkeyManager?.start() ?? false {
-        } else if !AXIsProcessTrusted(),
-                  !UserDefaults.standard.bool(forKey: "accessibility_alert_shown") {
-            showAccessibilityAlert()
-        }
+        _ = hotkeyManager?.start()
     }
 
     func hotkeyDidPress() {
@@ -275,7 +272,7 @@ final class MenuBarController: NSObject, HotkeyManagerDelegate {
         DispatchQueue.main.async {
             let alert = NSAlert()
             alert.messageText = "Accessibility Required"
-            alert.informativeText = "Phonos needs Accessibility permission for global hotkey and paste. Grant it in System Settings → Privacy & Security → Accessibility."
+            alert.informativeText = "Phonos needs Accessibility permission for paste automation. Grant it in System Settings → Privacy & Security → Accessibility."
             alert.alertStyle = .warning
             alert.addButton(withTitle: "Open Settings")
             alert.addButton(withTitle: "Later")
@@ -290,6 +287,30 @@ final class MenuBarController: NSObject, HotkeyManagerDelegate {
 
     private var settingsWindow: NSWindow?
     private var historyWindow: NSWindow?
+
+    private func showUtilityWindow(_ window: NSWindow) {
+        NSApp.setActivationPolicy(.regular)
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
+    private func restoreAccessoryPolicyIfNeeded() {
+        guard settingsWindow?.isVisible != true,
+              historyWindow?.isVisible != true
+        else { return }
+
+        NSApp.setActivationPolicy(.accessory)
+    }
+
+    func windowWillClose(_ notification: Notification) {
+        if notification.object as? NSWindow === settingsWindow {
+            settingsWindow = nil
+        } else if notification.object as? NSWindow === historyWindow {
+            historyWindow = nil
+        }
+
+        restoreAccessoryPolicyIfNeeded()
+    }
 
     @MainActor
     private func refreshRecentMenu() {
@@ -319,8 +340,7 @@ final class MenuBarController: NSObject, HotkeyManagerDelegate {
 
     @objc private func openHistory() {
         if let window = historyWindow {
-            window.makeKeyAndOrderFront(nil)
-            NSApp.activate(ignoringOtherApps: true)
+            showUtilityWindow(window)
             return
         }
 
@@ -334,20 +354,19 @@ final class MenuBarController: NSObject, HotkeyManagerDelegate {
         window.center()
         window.contentView = NSHostingView(rootView: TranscriptHistoryView(store: history))
         window.isReleasedWhenClosed = false
-        window.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
+        window.delegate = self
+        showUtilityWindow(window)
         historyWindow = window
     }
 
     @objc private func openSettings() {
         if let window = settingsWindow {
-            window.makeKeyAndOrderFront(nil)
-            NSApp.activate(ignoringOtherApps: true)
+            showUtilityWindow(window)
             return
         }
 
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 380, height: 320),
+            contentRect: NSRect(x: 0, y: 0, width: 420, height: 360),
             styleMask: [.titled, .closable, .miniaturizable],
             backing: .buffered,
             defer: false
@@ -356,8 +375,8 @@ final class MenuBarController: NSObject, HotkeyManagerDelegate {
         window.center()
         window.contentView = NSHostingView(rootView: SettingsView())
         window.isReleasedWhenClosed = false
-        window.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
+        window.delegate = self
+        showUtilityWindow(window)
         settingsWindow = window
     }
 
