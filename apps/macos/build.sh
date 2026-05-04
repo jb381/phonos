@@ -17,13 +17,12 @@ mkdir -p "$APP_DIR/Contents/MacOS"
 cp .build/release/Phonos "$APP_DIR/Contents/MacOS/Phonos"
 
 # Copy SPM resource bundles (required for dependencies like KeyboardShortcuts)
-RESOURCES_DIR="$APP_DIR/Contents/Resources"
-mkdir -p "$RESOURCES_DIR"
+# SPM's Bundle.module looks for these at the .app root, not Contents/Resources
 for bundle in .build/release/*.bundle; do
-    [ -d "$bundle" ] && cp -R "$bundle" "$RESOURCES_DIR/"
+    [ -d "$bundle" ] && cp -R "$bundle" "$APP_DIR/"
 done
 # Fix permissions on copied bundles (CI builds preserve runner ownership)
-chmod -R a+rX "$RESOURCES_DIR"
+chmod -R a+rX "$APP_DIR"
 
 # Write Info.plist
 cat > "$APP_DIR/Contents/Info.plist" << PLIST
