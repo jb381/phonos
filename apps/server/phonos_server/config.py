@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     port: int = 8765
     auth_token: str = ""
     model: str = "base.en"
-    models: str = "tiny.en,base.en,small.en,medium.en"
+    models: str = "tiny.en,base.en,small.en,medium.en,large-v3,turbo,distil-large-v3"
     device: str = "cpu"
     compute_type: str = "int8"
     vad_filter: bool = True

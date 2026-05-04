@@ -32,6 +32,8 @@ See `.env.example` for all environment variables.
 
 Docker Compose binds to `127.0.0.1` by default. If another machine needs to reach the server, set `PHONOS_BIND=0.0.0.0` and configure `PHONOS_AUTH_TOKEN`.
 
+Default transcription models are `tiny.en`, `base.en`, `small.en`, `medium.en`, `large-v3`, `turbo`, and `distil-large-v3`. Larger models are more accurate but slower and require more memory; `turbo` and `distil-large-v3` are good candidates to try when you want better quality than `base.en` without the full `large-v3` cost.
+
 ## Run Without Docker
 
 ```bash

@@ -8,6 +8,7 @@ struct SettingsView: View {
     @State private var isChecking = false
     @State private var isScanning = false
     @State private var scanResults: [ScanResult] = []
+    @State private var isSyncingModelSelection = false
 
     var body: some View {
         Form {
@@ -60,6 +61,7 @@ struct SettingsView: View {
                     }
                 }
                 .onChange(of: settings.selectedModel) { _, newModel in
+                    guard !isSyncingModelSelection else { return }
                     setModel(newModel)
                 }
 
@@ -117,7 +119,9 @@ struct SettingsView: View {
                 let response = try await ServerClient().listModels()
                 await MainActor.run {
                     availableModels = response.models
+                    isSyncingModelSelection = true
                     settings.selectedModel = response.active
+                    isSyncingModelSelection = false
                 }
             } catch {
                 await MainActor.run { serverStatus = error.localizedDescription }

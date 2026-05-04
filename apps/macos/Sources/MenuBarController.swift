@@ -53,7 +53,7 @@ final class MenuBarController: NSObject, NSWindowDelegate, HotkeyManagerDelegate
     private func setupMenuBar() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         if let button = statusItem?.button {
-            button.image = NSImage(systemSymbolName: "mic.fill", accessibilityDescription: "Phonos")
+            button.title = "🎙️"
         }
         buildMenu()
     }
@@ -245,10 +245,7 @@ final class MenuBarController: NSObject, NSWindowDelegate, HotkeyManagerDelegate
 
     @MainActor
     private func updateRecordingUI(_ recording: Bool) {
-        statusItem?.button?.image = NSImage(
-            systemSymbolName: recording ? "mic.circle.fill" : "mic.fill",
-            accessibilityDescription: "Phonos"
-        )
+        statusItem?.button?.title = recording ? "🔴" : "🎙️"
 
         if let menu = statusItem?.menu {
             for item in menu.items where item.action == #selector(toggleRecording) {
