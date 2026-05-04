@@ -37,6 +37,9 @@ cat > "$APP_DIR/Contents/Info.plist" << 'PLIST'
 </plist>
 PLIST
 
+# Give the local bundle a stable code-signing identity for macOS privacy permissions.
+codesign --force --deep --sign - "$APP_DIR"
+
 echo ""
 echo "=== Build complete ==="
 echo "App at: $APP_DIR"

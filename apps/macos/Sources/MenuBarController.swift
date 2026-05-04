@@ -10,11 +10,41 @@ final class MenuBarController: NSObject, HotkeyManagerDelegate {
     private let settings = SettingsManager.shared
     private let history = TranscriptHistoryStore.shared
     private let recentMenu = NSMenu()
+    private var lastPasteTargetBundleID: String?
 
     override init() {
         super.init()
+        startTrackingPasteTarget()
         setupMenuBar()
         setupHotkey()
+    }
+
+    deinit {
+        NSWorkspace.shared.notificationCenter.removeObserver(self)
+    }
+
+    private func startTrackingPasteTarget() {
+        updatePasteTarget(from: NSWorkspace.shared.frontmostApplication)
+        NSWorkspace.shared.notificationCenter.addObserver(
+            self,
+            selector: #selector(activeApplicationChanged(_:)),
+            name: NSWorkspace.didActivateApplicationNotification,
+            object: nil
+        )
+    }
+
+    @objc private func activeApplicationChanged(_ notification: Notification) {
+        let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication
+        updatePasteTarget(from: app)
+    }
+
+    private func updatePasteTarget(from app: NSRunningApplication?) {
+        guard let bundleIdentifier = app?.bundleIdentifier,
+              bundleIdentifier != Bundle.main.bundleIdentifier,
+              bundleIdentifier != "com.apple.systemuiserver"
+        else { return }
+
+        lastPasteTargetBundleID = bundleIdentifier
     }
 
     // MARK: - Menu Bar
@@ -159,6 +189,7 @@ final class MenuBarController: NSObject, HotkeyManagerDelegate {
         updateRecordingUI(false)
 
         guard let fileURL = await recorder.getOutputURL() else { return }
+        let pasteTargetBundleID = lastPasteTargetBundleID
 
         do {
             let result = try await ServerClient().transcribe(fileURL: fileURL)
@@ -171,15 +202,29 @@ final class MenuBarController: NSObject, HotkeyManagerDelegate {
             guard !result.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
 
             try? await Task.sleep(nanoseconds: 100_000_000)
+            reactivatePasteTarget(bundleIdentifier: pasteTargetBundleID)
+            try? await Task.sleep(nanoseconds: 150_000_000)
 
             do {
                 try await paster.pasteText(result.text)
+            } catch PasteError.accessibilityDenied {
+                await paster.copyToClipboard(result.text)
+                showAccessibilityAlert()
             } catch {
                 await paster.copyToClipboard(result.text)
             }
         } catch {
             showError(error)
         }
+    }
+
+    private func reactivatePasteTarget(bundleIdentifier: String?) {
+        guard let bundleIdentifier,
+              bundleIdentifier != Bundle.main.bundleIdentifier,
+              let app = NSWorkspace.shared.runningApplications.first(where: { $0.bundleIdentifier == bundleIdentifier })
+        else { return }
+
+        app.activate(options: [])
     }
 
     @objc private func pasteLast() {
@@ -190,6 +235,9 @@ final class MenuBarController: NSObject, HotkeyManagerDelegate {
             }
             do {
                 try await paster.pasteText(lastTranscript)
+            } catch PasteError.accessibilityDenied {
+                await paster.copyToClipboard(lastTranscript)
+                showAccessibilityAlert()
             } catch {
                 await paster.copyToClipboard(lastTranscript)
             }

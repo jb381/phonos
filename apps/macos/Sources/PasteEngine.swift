@@ -18,35 +18,25 @@ actor PasteEngine {
             throw PasteError.accessibilityDenied
         }
 
-        let savedPasteboard = NSPasteboard.general.string(forType: .string)
-
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(text, forType: .string)
+
+        try? await Task.sleep(nanoseconds: 300_000_000)
 
         let source = CGEventSource(stateID: .hidSystemState)
         let vKey = CGKeyCode(0x09)
 
-        guard let down = CGEvent(keyboardEventSource: source, virtualKey: vKey, keyDown: true),
-              let up = CGEvent(keyboardEventSource: source, virtualKey: vKey, keyDown: false) else {
-            if let saved = savedPasteboard {
-                NSPasteboard.general.clearContents()
-                NSPasteboard.general.setString(saved, forType: .string)
-            }
+        guard let vDown = CGEvent(keyboardEventSource: source, virtualKey: vKey, keyDown: true),
+              let vUp = CGEvent(keyboardEventSource: source, virtualKey: vKey, keyDown: false) else {
             throw PasteError.pasteFailed
         }
 
-        down.flags = .maskCommand
-        up.flags = .maskCommand
+        vDown.flags = .maskCommand
+        vUp.flags = .maskCommand
 
-        down.post(tap: .cghidEventTap)
-        up.post(tap: .cghidEventTap)
-
-        try? await Task.sleep(nanoseconds: 300_000_000)
-
-        if let saved = savedPasteboard {
-            NSPasteboard.general.clearContents()
-            NSPasteboard.general.setString(saved, forType: .string)
-        }
+        vDown.post(tap: .cghidEventTap)
+        try? await Task.sleep(nanoseconds: 50_000_000)
+        vUp.post(tap: .cghidEventTap)
     }
 
     func copyToClipboard(_ text: String) {
