@@ -1,7 +1,10 @@
 #!/bin/bash
 set -e
 
-echo "=== Building Phonos ==="
+VERSION="${PHONOS_VERSION:-$(git describe --tags --always 2>/dev/null || echo "0.0.0")}"
+BUILD="${PHONOS_BUILD:-$(git rev-list --count HEAD 2>/dev/null || echo "0")}"
+
+echo "=== Building Phonos ${VERSION} (build ${BUILD}) ==="
 
 # Build the binary
 swift build -c release 2>&1
@@ -14,7 +17,7 @@ mkdir -p "$APP_DIR/Contents/MacOS"
 cp .build/release/Phonos "$APP_DIR/Contents/MacOS/Phonos"
 
 # Write Info.plist
-cat > "$APP_DIR/Contents/Info.plist" << 'PLIST'
+cat > "$APP_DIR/Contents/Info.plist" << PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -25,6 +28,10 @@ cat > "$APP_DIR/Contents/Info.plist" << 'PLIST'
     <string>dev.phonos.app</string>
     <key>CFBundleName</key>
     <string>Phonos</string>
+    <key>CFBundleShortVersionString</key>
+    <string>${VERSION}</string>
+    <key>CFBundleVersion</key>
+    <string>${BUILD}</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>LSUIElement</key>
@@ -51,10 +58,21 @@ else
     codesign --force --deep --sign - "$APP_DIR"
 fi
 
+# Create DMG
+echo ""
+echo "=== Creating DMG ==="
+DMG_DIR=$(mktemp -d)
+cp -R "$APP_DIR" "$DMG_DIR/"
+ln -s /Applications "$DMG_DIR/Applications"
+DMG_NAME="Phonos.dmg"
+hdiutil create -volname "Phonos" -srcfolder "$DMG_DIR" -ov -format UDZO -fs HFS+ "$DMG_NAME" 2>&1
+rm -rf "$DMG_DIR"
+
 echo ""
 echo "=== Build complete ==="
-echo "App at: $APP_DIR"
+echo "App at:  $APP_DIR"
+echo "DMG at:  $DMG_NAME"
 echo ""
 echo "First launch will prompt for permissions."
-echo "If not, grant manually: open $APP_DIR from Finder"
-echo "or drag it into System Settings → Privacy & Security → Accessibility"
+echo "If not, grant manually: open Phonos.dmg"
+echo "Then drag Phonos.app into the Applications folder."

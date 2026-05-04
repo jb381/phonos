@@ -62,11 +62,6 @@ final class MenuBarController: NSObject, NSWindowDelegate, HotkeyManagerDelegate
     private func buildMenu() {
         let menu = NSMenu()
 
-        let statusMenuItem = NSMenuItem(title: "Server: checking...", action: nil, keyEquivalent: "")
-        menu.addItem(statusMenuItem)
-
-        menu.addItem(.separator())
-
         let recordItem = NSMenuItem(title: "Start Recording", action: #selector(toggleRecording), keyEquivalent: "r")
         recordItem.target = self
         menu.addItem(recordItem)
@@ -99,23 +94,6 @@ final class MenuBarController: NSObject, NSWindowDelegate, HotkeyManagerDelegate
         menu.addItem(quitItem)
 
         statusItem?.menu = menu
-
-        Task {
-            await updateConnectionStatus(statusMenuItem)
-        }
-    }
-
-    @MainActor
-    private func updateConnectionStatus(_ item: NSMenuItem) async {
-        do {
-            let health = try await ServerClient().healthCheck()
-            item.title = "Server: \(health.model) (\(health.device))"
-            if settings.selectedModel != health.model {
-                settings.selectedModel = health.model
-            }
-        } catch {
-            item.title = "Server: offline"
-        }
     }
 
     // MARK: - Hotkey

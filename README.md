@@ -72,13 +72,18 @@ uv run uvicorn phonos_server.main:app --host 0.0.0.0 --port 8765
 
 ### macOS client
 
+**From a release** — download the latest `Phonos-*.dmg` from the [Releases](https://github.com/jb381/phonos/releases) page, open it, and drag `Phonos.app` to Applications.
+
+**From source:**
 ```bash
 cd apps/macos
-./build.sh                    # creates app bundle with permissions
-open .build/Phonos.app
+./build.sh                    # creates Phonos.dmg and Phonos.app
+open Phonos.dmg               # then drag to Applications
 ```
 
-Grant **Microphone** 🎤 and **Accessibility** ♿ in `System Settings → Privacy & Security`.
+Releases are triggered by `git tag vX.Y.Z && git push --tags` — CI builds, signs (ad-hoc), and publishes a DMG automatically.
+
+> **No Apple Developer account = ad-hoc signing.** Gatekeeper will complain on first launch — right-click the app and choose **Open**, or go to System Settings → Privacy & Security and click **Open Anyway**. Accessibility permission must be re-granted after each ad-hoc rebuild. Fork out $99/yr for an Apple Developer account and we can switch to proper Developer ID signing + notarization — contributions welcome.
 
 ───
 
