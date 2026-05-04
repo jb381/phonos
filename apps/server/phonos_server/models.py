@@ -25,6 +25,7 @@ class ModelManager:
         with self._lock:
             if self._model is not None:
                 logger.info("Unloading model: %s", self._model_name)
+                self._model.model.unload_model()
                 del self._model
                 self._model = None
                 gc.collect()
