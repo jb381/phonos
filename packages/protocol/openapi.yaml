@@ -1,0 +1,176 @@
+openapi: "3.0.3"
+info:
+  title: Phonos API
+  description: Local dictation server API
+  version: "0.1.0"
+
+servers:
+  - url: http://localhost:8765
+    description: Local server
+
+paths:
+  /health:
+    get:
+      operationId: health
+      summary: Server health check
+      responses:
+        "200":
+          description: Server is healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+
+  /models:
+    get:
+      operationId: listModels
+      summary: List configured models
+      responses:
+        "200":
+          description: Available models
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModelsResponse"
+
+  /models/active:
+    get:
+      operationId: getActiveModel
+      summary: Get currently loaded model
+      responses:
+        "200":
+          description: Active model info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActiveModelResponse"
+    put:
+      operationId: setActiveModel
+      summary: Switch active Whisper model
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SetModelRequest"
+      responses:
+        "200":
+          description: Model switched successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActiveModelResponse"
+        "400":
+          description: Invalid model name
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /transcribe:
+    post:
+      operationId: transcribe
+      summary: Transcribe uploaded audio
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Audio file (WAV, MP3, M4A)
+              required:
+                - file
+      responses:
+        "200":
+          description: Transcription result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TranscriptionResponse"
+        "400":
+          description: Invalid audio
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: Model not loaded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Optional token authentication
+
+  schemas:
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: ["ok", "loading", "error"]
+        model:
+          type: string
+          description: Currently loaded model name
+        device:
+          type: string
+        compute_type:
+          type: string
+
+    ModelsResponse:
+      type: object
+      properties:
+        models:
+          type: array
+          items:
+            type: string
+        active:
+          type: string
+
+    ActiveModelResponse:
+      type: object
+      properties:
+        model:
+          type: string
+        status:
+          type: string
+          enum: ["loaded", "loading", "error"]
+
+    SetModelRequest:
+      type: object
+      properties:
+        model:
+          type: string
+      required:
+        - model
+
+    TranscriptionResponse:
+      type: object
+      properties:
+        text:
+          type: string
+        model:
+          type: string
+        language:
+          type: string
+        duration_seconds:
+          type: number
+        processing_seconds:
+          type: number
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+  security:
+    - bearerAuth: []
