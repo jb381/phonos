@@ -22,6 +22,8 @@ mkdir -p "$RESOURCES_DIR"
 for bundle in .build/release/*.bundle; do
     [ -d "$bundle" ] && cp -R "$bundle" "$RESOURCES_DIR/"
 done
+# Fix permissions on copied bundles (CI builds preserve runner ownership)
+chmod -R a+rX "$RESOURCES_DIR"
 
 # Write Info.plist
 cat > "$APP_DIR/Contents/Info.plist" << PLIST
