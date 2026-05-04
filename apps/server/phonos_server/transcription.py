@@ -31,6 +31,14 @@ async def transcribe_audio(
     if len(content) == 0:
         raise HTTPException(status_code=400, detail="Empty audio file")
 
+    logger.info(
+        "Received transcription request: filename=%s content_type=%s size_bytes=%d model=%s",
+        file.filename,
+        file.content_type,
+        len(content),
+        manager.active_model,
+    )
+
     suffix = os.path.splitext(file.filename)[1] or ".wav"
     with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
         tmp.write(content)
@@ -40,6 +48,14 @@ async def transcribe_audio(
         start = time.time()
         result = manager.transcribe(tmp_path)
         result["processing_seconds"] = round(time.time() - start, 2)
+        logger.info(
+            "Transcription complete: model=%s language=%s duration_seconds=%s processing_seconds=%s text=%r",
+            result.get("model"),
+            result.get("language"),
+            result.get("duration_seconds"),
+            result.get("processing_seconds"),
+            result.get("text", ""),
+        )
         return result
     except RuntimeError as e:
         raise HTTPException(status_code=503, detail=str(e))

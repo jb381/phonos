@@ -1,12 +1,15 @@
 import Cocoa
 import SwiftUI
 
+@MainActor
 final class MenuBarController: NSObject, HotkeyManagerDelegate {
     private var statusItem: NSStatusItem?
     private let recorder = AudioRecorder()
     private let paster = PasteEngine()
     private var hotkeyManager: HotkeyManager?
     private let settings = SettingsManager.shared
+    private let history = TranscriptHistoryStore.shared
+    private let recentMenu = NSMenu()
 
     override init() {
         super.init()
@@ -40,6 +43,15 @@ final class MenuBarController: NSObject, HotkeyManagerDelegate {
         pasteItem.keyEquivalentModifierMask = [.command, .shift]
         pasteItem.target = self
         menu.addItem(pasteItem)
+
+        let historyItem = NSMenuItem(title: "History...", action: #selector(openHistory), keyEquivalent: "h")
+        historyItem.target = self
+        menu.addItem(historyItem)
+
+        let recentItem = NSMenuItem(title: "Recent Transcripts", action: nil, keyEquivalent: "")
+        recentItem.submenu = recentMenu
+        menu.addItem(recentItem)
+        refreshRecentMenu()
 
         menu.addItem(.separator())
 
@@ -134,7 +146,7 @@ final class MenuBarController: NSObject, HotkeyManagerDelegate {
         do {
             _ = try await recorder.startRecording()
             isRecording = true
-            await updateRecordingUI(true)
+            updateRecordingUI(true)
         } catch {
             showError(error)
         }
@@ -144,13 +156,19 @@ final class MenuBarController: NSObject, HotkeyManagerDelegate {
         guard isRecording else { return }
         await recorder.stopRecording()
         isRecording = false
-        await updateRecordingUI(false)
+        updateRecordingUI(false)
 
         guard let fileURL = await recorder.getOutputURL() else { return }
 
         do {
             let result = try await ServerClient().transcribe(fileURL: fileURL)
             lastTranscript = result.text
+            await MainActor.run {
+                history.add(result.text)
+                refreshRecentMenu()
+            }
+
+            guard !result.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
 
             try? await Task.sleep(nanoseconds: 100_000_000)
 
@@ -158,7 +176,6 @@ final class MenuBarController: NSObject, HotkeyManagerDelegate {
                 try await paster.pasteText(result.text)
             } catch {
                 await paster.copyToClipboard(result.text)
-                await showTranscript(result.text)
             }
         } catch {
             showError(error)
@@ -195,16 +212,6 @@ final class MenuBarController: NSObject, HotkeyManagerDelegate {
         }
     }
 
-    @MainActor
-    private func showTranscript(_ text: String) {
-        let alert = NSAlert()
-        alert.messageText = "Transcription"
-        alert.informativeText = text
-        alert.alertStyle = .informational
-        alert.addButton(withTitle: "OK")
-        alert.runModal()
-    }
-
     private func showError(_ error: Error) {
         DispatchQueue.main.async {
             let alert = NSAlert()
@@ -234,6 +241,55 @@ final class MenuBarController: NSObject, HotkeyManagerDelegate {
     // MARK: - Actions
 
     private var settingsWindow: NSWindow?
+    private var historyWindow: NSWindow?
+
+    @MainActor
+    private func refreshRecentMenu() {
+        recentMenu.removeAllItems()
+
+        if history.entries.isEmpty {
+            let item = NSMenuItem(title: "No transcripts yet", action: nil, keyEquivalent: "")
+            item.isEnabled = false
+            recentMenu.addItem(item)
+            return
+        }
+
+        for entry in history.entries.prefix(5) {
+            let title = entry.text.replacingOccurrences(of: "\n", with: " ")
+            let item = NSMenuItem(title: String(title.prefix(70)), action: #selector(copyTranscriptFromMenu(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = entry.text
+            recentMenu.addItem(item)
+        }
+    }
+
+    @objc private func copyTranscriptFromMenu(_ sender: NSMenuItem) {
+        guard let text = sender.representedObject as? String else { return }
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(text, forType: .string)
+    }
+
+    @objc private func openHistory() {
+        if let window = historyWindow {
+            window.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+            return
+        }
+
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 460, height: 420),
+            styleMask: [.titled, .closable, .miniaturizable, .resizable],
+            backing: .buffered,
+            defer: false
+        )
+        window.title = "Phonos History"
+        window.center()
+        window.contentView = NSHostingView(rootView: TranscriptHistoryView(store: history))
+        window.isReleasedWhenClosed = false
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+        historyWindow = window
+    }
 
     @objc private func openSettings() {
         if let window = settingsWindow {

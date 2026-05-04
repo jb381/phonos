@@ -42,16 +42,7 @@ actor AudioRecorder {
         let inputNode = engine.inputNode
 
         let format = inputNode.outputFormat(forBus: 0)
-        let settings: [String: Any] = [
-            AVFormatIDKey: Int(kAudioFormatLinearPCM),
-            AVSampleRateKey: format.sampleRate,
-            AVNumberOfChannelsKey: 1,
-            AVLinearPCMBitDepthKey: 16,
-            AVLinearPCMIsFloatKey: false,
-            AVLinearPCMIsBigEndianKey: false,
-        ]
-
-        let outputFile = try AVAudioFile(forWriting: url, settings: settings, commonFormat: .pcmFormatInt16, interleaved: false)
+        let outputFile = try AVAudioFile(forWriting: url, settings: format.settings)
         self.outputFile = outputFile
 
         inputNode.installTap(onBus: 0, bufferSize: 4096, format: format) { buffer, _ in

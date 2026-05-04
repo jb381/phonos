@@ -1,6 +1,7 @@
 import Cocoa
 import Carbon
 
+@MainActor
 protocol HotkeyManagerDelegate: AnyObject {
     func hotkeyDidPress()
     func hotkeyDidRelease()
