@@ -16,6 +16,13 @@ mkdir -p "$APP_DIR/Contents/MacOS"
 # Copy binary
 cp .build/release/Phonos "$APP_DIR/Contents/MacOS/Phonos"
 
+# Copy SPM resource bundles (required for dependencies like KeyboardShortcuts)
+RESOURCES_DIR="$APP_DIR/Contents/Resources"
+mkdir -p "$RESOURCES_DIR"
+for bundle in .build/release/*.bundle; do
+    [ -d "$bundle" ] && cp -R "$bundle" "$RESOURCES_DIR/"
+done
+
 # Write Info.plist
 cat > "$APP_DIR/Contents/Info.plist" << PLIST
 <?xml version="1.0" encoding="UTF-8"?>
