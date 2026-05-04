@@ -71,7 +71,7 @@ actor ServerClient {
 
     init() {
         let config = URLSessionConfiguration.default
-        config.timeoutIntervalForRequest = 10
+        config.timeoutIntervalForRequest = 120
         self.session = URLSession(configuration: config)
     }
 
