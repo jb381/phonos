@@ -173,6 +173,7 @@ class ModelManager:
                 self._status = "error"
                 self._last_error = "No model loaded"
                 raise RuntimeError("No model loaded")
+            timeout = self.settings.transcribe_timeout_seconds
             self._cmd_queue.put(
                 {
                     "action": "transcribe",
@@ -181,7 +182,11 @@ class ModelManager:
                     **kwargs,
                 }
             )
-            msg = self._result_queue.get(timeout=REQUEST_TIMEOUT)
+            try:
+                msg = self._result_queue.get(timeout=timeout)
+            except queue.Empty as exc:
+                self._last_error = f"Timed out transcribing audio after {timeout} seconds"
+                raise TimeoutError(self._last_error) from exc
             if msg.get("type") == "error":
                 raise RuntimeError(msg.get("message", "Transcription failed"))
             if "text" not in msg:

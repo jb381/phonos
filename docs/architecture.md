@@ -58,6 +58,7 @@ PHONOS_MODELS=tiny.en,base.en,small.en,medium.en,large-v3,turbo,distil-large-v3
 PHONOS_DEVICE=cpu
 PHONOS_COMPUTE_TYPE=int8
 PHONOS_VAD_FILTER=true
+PHONOS_TRANSCRIBE_TIMEOUT_SECONDS=600
 ```
 
 **Model Lifecycle**:

@@ -140,6 +140,22 @@ class TestTranscribe:
         )
         assert response.status_code == 400
 
+    def test_transcribe_timeout(self, client_with_auth, auth_headers, sample_wav):
+        import phonos_server.main as main_mod
+
+        main_mod.manager.transcribe.side_effect = TimeoutError(
+            "Timed out transcribing audio after 600 seconds"
+        )
+
+        response = client_with_auth.post(
+            "/transcribe",
+            files={"file": ("test.wav", sample_wav, "audio/wav")},
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 504
+        assert "Timed out transcribing" in response.json()["detail"]
+
 
 class TestAuth:
     def test_no_auth_when_not_configured(self, client):

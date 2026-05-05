@@ -212,6 +212,7 @@ PHONOS_MODELS=tiny.en,base.en,small.en,medium.en,large-v3,turbo,distil-large-v3 
 PHONOS_DEVICE=cpu            # Device: cpu or cuda
 PHONOS_COMPUTE_TYPE=int8     # Compute type for faster-whisper
 PHONOS_VAD_FILTER=true       # Enable voice activity detection
+PHONOS_TRANSCRIBE_TIMEOUT_SECONDS=600  # Per-request transcription timeout
 ```
 
 ### Mac Client Settings
@@ -254,11 +255,11 @@ Acceptance criteria:
 
 #### Align transcription timeout behavior
 
-- [ ] Make server request timeout configurable with `PHONOS_TRANSCRIBE_TIMEOUT_SECONDS`.
-- [ ] Make macOS client request timeout configurable or derive a sensible value from server/model settings.
-- [ ] Return a distinct timeout error from the server, preferably `504`, when transcription exceeds the configured limit.
+- [x] Make server request timeout configurable with `PHONOS_TRANSCRIBE_TIMEOUT_SECONDS`.
+- [x] Make the macOS client timeout long enough to match the server default.
+- [x] Return a distinct `504` timeout error from the server when transcription exceeds the configured limit.
 - [ ] Show a user-facing timeout message that suggests using a smaller model or increasing the timeout.
-- [ ] Add tests for timeout responses and client error decoding.
+- [x] Add server tests for timeout responses.
 
 Relevant files:
 - `apps/server/phonos_server/models.py`

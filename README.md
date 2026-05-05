@@ -139,6 +139,7 @@ PHONOS_MODELS=tiny.en,base.en,small.en,medium.en,large-v3,turbo,distil-large-v3
 PHONOS_DEVICE=cpu
 PHONOS_COMPUTE_TYPE=int8
 PHONOS_VAD_FILTER=true
+PHONOS_TRANSCRIBE_TIMEOUT_SECONDS=600
 ```
 
 Docker Compose binds to `127.0.0.1` by default. For remote access, set `PHONOS_BIND=0.0.0.0` and `PHONOS_AUTH_TOKEN`.

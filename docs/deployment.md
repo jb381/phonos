@@ -31,6 +31,7 @@ PHONOS_MODEL=base.en
 PHONOS_MODELS=tiny.en,base.en,small.en,medium.en
 PHONOS_DEVICE=cpu
 PHONOS_COMPUTE_TYPE=int8
+PHONOS_TRANSCRIBE_TIMEOUT_SECONDS=600
 ```
 
 ### 3. Start the server
@@ -192,6 +193,7 @@ Check internet connectivity. Models are cached in the Docker volume.
 - Ensure `PHONOS_COMPUTE_TYPE=int8`.
 - Consider a GPU-enabled server if available.
 - Check VAD impact: set `PHONOS_VAD_FILTER=false` to see if VAD adds latency.
+- If large models time out, raise `PHONOS_TRANSCRIBE_TIMEOUT_SECONDS` or switch to a smaller model.
 
 ### Connection refused from Mac client
 - Verify Tailscale is running on both devices.

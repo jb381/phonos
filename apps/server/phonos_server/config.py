@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     device: str = "cpu"
     compute_type: str = "int8"
     vad_filter: bool = True
+    transcribe_timeout_seconds: int = 600
 
     model_config = {"env_prefix": "PHONOS_", "env_file": ".env"}
 

@@ -61,6 +61,8 @@ async def transcribe_audio(
             result.get("text", ""),
         )
         return result
+    except TimeoutError as e:
+        raise HTTPException(status_code=504, detail=str(e)) from e
     except RuntimeError as e:
         raise HTTPException(status_code=503, detail=str(e)) from e
     except Exception:
