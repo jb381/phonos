@@ -24,7 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added model guidance in Settings and first-run setup, including warnings for slower CPU-heavy models.
 - Improved network scanning to consider all active IPv4 interfaces and probe hosts in bounded batches.
 - Expanded server health output with uptime, request count, transcription count, and last processing duration.
-- Reworked the README with a more professional tone and removed overclaimed or joke-heavy copy.
+- Reworked the README to keep the original personality and emoji-heavy style while tightening product, privacy, and release-signing claims.
 - Added README privacy/security notes and troubleshooting guidance.
 
 ### Changed
