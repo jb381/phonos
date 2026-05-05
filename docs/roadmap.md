@@ -259,7 +259,7 @@ Acceptance criteria:
 - [x] Make server request timeout configurable with `PHONOS_TRANSCRIBE_TIMEOUT_SECONDS`.
 - [x] Make the macOS client timeout long enough to match the server default.
 - [x] Return a distinct `504` timeout error from the server when transcription exceeds the configured limit.
-- [ ] Show a user-facing timeout message that suggests using a smaller model or increasing the timeout.
+- [ ] Show a user-facing timeout message that suggests using a smaller model or increasing the timeout. *(planned: 1.2.0)*
 - [x] Add server tests for timeout responses.
 
 Relevant files:
@@ -296,9 +296,9 @@ Acceptance criteria:
 #### Delete temporary recordings on macOS
 
 - [x] Delete recorded temp WAV files after a successful or failed upload.
-- [x] Ensure deletion happens in all paths: success, server error, auth error, timeout, paste failure, and empty transcript.
-- [ ] Keep an optional debug setting only if needed for troubleshooting.
-- [ ] Add logging or debug-only diagnostics for cleanup failures.
+- [x] Ensure deletion happens in all paths: success, server error, auth error, timeout, paste failure, empty transcript, **and stopRecording write failures**.
+- [ ] Keep an optional debug setting only if needed for troubleshooting. (low priority)
+- [ ] Add logging or debug-only diagnostics for cleanup failures. (low priority)
 
 Relevant files:
 - `apps/macos/Sources/AudioRecorder.swift`
@@ -372,9 +372,9 @@ Acceptance criteria:
 
 - [x] Add distinct status states: idle, recording, transcribing, pasted, copied-only, and error.
 - [x] Update menu item titles while work is in progress.
-- [ ] Disable conflicting actions during recording or transcription.
+- [ ] Disable conflicting actions during recording or transcription. *(planned: 1.2.0)*
 - [ ] Add a short success/error notification or menu subtitle after each transcription.
-- [ ] Keep the last error available in the menu for troubleshooting.
+- [ ] Keep the last error available in the menu for troubleshooting. *(planned: 1.2.0)*
 
 Relevant files:
 - `apps/macos/Sources/MenuBarController.swift`
@@ -488,9 +488,9 @@ Acceptance criteria:
 - [x] Add tests for model worker load failure and worker death.
 - [x] Add tests for upload size limit and streaming upload behavior.
 - [x] Add tests for auth on all protected endpoints.
-- [ ] Add OpenAPI contract checks for response shapes.
-- [ ] Add Swift unit tests where feasible for URL building, error decoding, and settings storage.
-- [ ] Add a lightweight end-to-end smoke test for the server container.
+- [ ] Add OpenAPI contract checks for response shapes. *(planned: 1.2.0)*
+- [ ] Add Swift unit tests where feasible for URL building, error decoding, and settings storage. *(planned: 1.2.0)*
+- [ ] Add a lightweight end-to-end smoke test for the server container. *(planned: 1.2.0)*
 
 Relevant files:
 - `apps/server/tests/test_api.py`
@@ -517,6 +517,39 @@ Relevant files:
 
 Acceptance criteria:
 - A new user or contributor can trust that documented features match shipped behavior.
+
+### P3 — Future Capability
+
+#### Streaming transcription mode
+
+---
+
+## Phase 10: The Test Release (v1.2.0)
+
+**Goal**: Close the testing gap on the macOS side, add E2E coverage, and ship small UX improvements that improve troubleshooting.
+
+### 10.1 Swift Unit Tests
+
+- [ ] Unit tests for `KeychainStore` — read, write, delete, migration from `UserDefaults`
+- [ ] Unit tests for `ServerClient` — URL construction with/without token, error decoding, timeout behavior
+- [ ] Unit tests for `ModelCatalog` — verify guidance data integrity
+
+### 10.2 E2E Smoke Test
+
+- [ ] Docker Compose server + real WAV → assert non-empty transcription
+- [ ] Run in CI alongside existing server tests
+- [ ] Docs: `apps/server/tests/README.md` if needed
+
+### 10.3 OpenAPI Contract Validation
+
+- [ ] Verify server response shapes match `packages/protocol/openapi.yaml`
+- [ ] Catch drift between spec and implementation in CI
+
+### 10.4 UX Improvements
+
+- [ ] Disable record/toggle actions during active recording or transcription
+- [ ] Show last error message in menu bar for post-failure troubleshooting
+- [ ] Display a user-facing timeout message when transcription exceeds server limit
 
 ### P3 — Future Capability
 

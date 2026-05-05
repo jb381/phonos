@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - Unreleased
+
+**The Test Release**
+
+### Added
+
+- Swift unit tests for KeychainStore (read, write, delete, migration from UserDefaults).
+- Swift unit tests for ServerClient (URL building, auth headers, error decoding, timeout handling).
+- OpenAPI contract validation tests to keep the spec and server responses aligned.
+- End-to-end smoke test with a Docker server container and a real WAV file.
+
+### Changed
+
+- Disabled conflicting menu actions during recording and transcription to prevent double-triggers.
+- Kept the last error message visible in the menu bar for troubleshooting after a failure.
+- Showed a user-facing timeout suggestion when transcriptions exceed the server limit.
+
+### Fixed
+
+- Ensured temp recording cleanup runs even when `stopRecording()` throws a write error.
+
+---
+
 ## [1.1.0] - 2026-05-05
 
 **Quality-of-Life and Hardening Release**
