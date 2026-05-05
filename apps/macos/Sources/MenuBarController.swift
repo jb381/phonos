@@ -434,7 +434,7 @@ final class MenuBarController: NSObject, NSWindowDelegate, HotkeyManagerDelegate
         }
 
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 460, height: 430),
+            contentRect: NSRect(x: 0, y: 0, width: 460, height: 500),
             styleMask: [.titled, .closable, .miniaturizable],
             backing: .buffered,
             defer: false

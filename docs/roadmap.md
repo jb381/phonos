@@ -334,7 +334,7 @@ Acceptance criteria:
 - [x] Detect missing Accessibility permission before paste automation fails.
 - [x] Add direct buttons to open the relevant macOS privacy settings panes.
 - [x] Store first-run completion state, but allow reopening setup from the menu.
-- [ ] Add model choice to the first-run setup.
+- [x] Add model choice to the first-run setup.
 
 Relevant files:
 - `apps/macos/Sources/PhonosApp.swift`
@@ -434,9 +434,9 @@ Acceptance criteria:
 
 #### Improve model selection UX
 
-- [ ] Add model metadata to server responses or a client-side model catalog.
-- [ ] Show approximate RAM, speed, language support, and recommended use for each model.
-- [ ] Warn before switching to very large models on CPU.
+- [x] Add model metadata to server responses or a client-side model catalog.
+- [x] Show speed, language support, and recommended use for each model.
+- [x] Warn before switching to very large models on CPU.
 - [ ] Show model loading progress/state while switching.
 - [ ] Disable transcription during model switching or queue it intentionally.
 

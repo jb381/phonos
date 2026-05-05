@@ -8,6 +8,8 @@ struct FirstRunView: View {
     @State private var accessibilityGranted = false
     @State private var serverStatus = "Not checked"
     @State private var isCheckingServer = false
+    @State private var availableModels: [String] = []
+    @State private var isSyncingModelSelection = false
     let onDone: () -> Void
 
     var body: some View {
@@ -58,6 +60,22 @@ struct FirstRunView: View {
                     Button("Check Connection") { checkServer() }
                         .disabled(isCheckingServer)
                 }
+
+                if !availableModels.isEmpty {
+                    Picker("Model", selection: $settings.selectedModel) {
+                        ForEach(availableModels, id: \.self) { model in
+                            Text(model).tag(model)
+                        }
+                    }
+                    .onChange(of: settings.selectedModel) { _, newModel in
+                        guard !isSyncingModelSelection else { return }
+                        setModel(newModel)
+                    }
+
+                    Text(ModelCatalog.description(for: settings.selectedModel))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
 
             Spacer()
@@ -72,9 +90,10 @@ struct FirstRunView: View {
             }
         }
         .padding(22)
-        .frame(width: 460, height: 430)
+        .frame(width: 460, height: 500)
         .onAppear {
             refreshPermissions()
+            fetchModels()
         }
     }
 
@@ -141,6 +160,42 @@ struct FirstRunView: View {
                 await MainActor.run {
                     serverStatus = error.localizedDescription
                     isCheckingServer = false
+                }
+            }
+        }
+    }
+
+    private func fetchModels() {
+        Task {
+            do {
+                let response = try await ServerClient().listModels()
+                await MainActor.run {
+                    availableModels = response.models
+                    isSyncingModelSelection = true
+                    settings.selectedModel = response.active
+                    isSyncingModelSelection = false
+                }
+            } catch {
+                await MainActor.run {
+                    serverStatus = error.localizedDescription
+                }
+            }
+        }
+    }
+
+    private func setModel(_ model: String) {
+        if ModelCatalog.isLargeCPUModel(model) {
+            serverStatus = "\(model) may be slow on CPU"
+        }
+        Task {
+            do {
+                let response = try await ServerClient().setActiveModel(model)
+                await MainActor.run {
+                    serverStatus = "Model: \(response.model)"
+                }
+            } catch {
+                await MainActor.run {
+                    serverStatus = error.localizedDescription
                 }
             }
         }

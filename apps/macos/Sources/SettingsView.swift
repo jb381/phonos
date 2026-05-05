@@ -73,6 +73,10 @@ struct SettingsView: View {
                     setModel(newModel)
                 }
 
+                Text(ModelCatalog.description(for: settings.selectedModel))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
                 Button("Refresh Models") { fetchModels() }
             }
 
@@ -155,6 +159,9 @@ struct SettingsView: View {
     }
 
     private func setModel(_ model: String) {
+        if ModelCatalog.isLargeCPUModel(model) {
+            serverStatus = "\(model) may be slow on CPU"
+        }
         Task {
             do {
                 let response = try await ServerClient().setActiveModel(model)
