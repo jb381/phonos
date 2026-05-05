@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added a first-run setup window for microphone permission, Accessibility permission, server settings, and connection checks.
 - Added menu-bar workflow status for recording, transcribing, pasting, copied-to-clipboard, and error states.
 - Surfaced local audio file write failures instead of uploading a silently corrupt recording.
+- Added a launch-at-login setting for the macOS app.
 
 ### Changed
 

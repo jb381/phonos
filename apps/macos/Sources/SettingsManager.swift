@@ -13,6 +13,7 @@ final class SettingsManager: ObservableObject {
     @AppStorage("recordingMode") var recordingMode = "hold"
     @AppStorage("selectedModel") var selectedModel = "base.en"
     @AppStorage("firstRunCompleted") var firstRunCompleted = false
+    @AppStorage("launchAtLogin") var launchAtLogin = false
     @Published var authToken = "" {
         didSet {
             do {

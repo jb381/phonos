@@ -349,7 +349,7 @@ Acceptance criteria:
 
 #### Improve distribution polish
 
-- [ ] Add launch-at-login support.
+- [x] Add launch-at-login support.
 - [ ] Add a stable signing/notarization path for Developer ID releases.
 - [ ] Keep ad-hoc signing available for local development builds.
 - [ ] Add a consistent bundle identifier and release metadata.

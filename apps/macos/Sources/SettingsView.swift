@@ -9,6 +9,8 @@ struct SettingsView: View {
     @State private var isScanning = false
     @State private var scanResults: [ScanResult] = []
     @State private var isSyncingModelSelection = false
+    @State private var isSyncingLaunchAtLogin = false
+    @State private var launchAtLoginError: String?
 
     var body: some View {
         Form {
@@ -87,6 +89,20 @@ struct SettingsView: View {
                     }
                 }
             }
+
+            Section("App") {
+                Toggle("Launch at Login", isOn: $settings.launchAtLogin)
+                    .onChange(of: settings.launchAtLogin) { _, enabled in
+                        guard !isSyncingLaunchAtLogin else { return }
+                        updateLaunchAtLogin(enabled)
+                    }
+
+                if let error = launchAtLoginError {
+                    Text(error)
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                }
+            }
         }
         .padding()
         .frame(width: 420)
@@ -159,6 +175,18 @@ struct SettingsView: View {
                 scanResults = results
                 isScanning = false
             }
+        }
+    }
+
+    private func updateLaunchAtLogin(_ enabled: Bool) {
+        do {
+            try LaunchAtLoginManager.setEnabled(enabled)
+            launchAtLoginError = nil
+        } catch {
+            launchAtLoginError = error.localizedDescription
+            isSyncingLaunchAtLogin = true
+            settings.launchAtLogin = !enabled
+            isSyncingLaunchAtLogin = false
         }
     }
 }
