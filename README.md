@@ -1,66 +1,63 @@
 <div align="center">
 
 
-# 🎙️🗣️🔪 φόνος — phonos
+# Phonos
 
-*phónos — voice, sound, speech... but also murder, slaughter, homicide (yes, really)*
-
-**Speak freely. Your words, where you need them.**
+**Local dictation for macOS, powered by your own Whisper server.**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux-333?style=flat-square)]()
 [![Python](https://img.shields.io/badge/python-3.12+-3776AB?style=flat-square&logo=python&logoColor=fff)]()
 
-A *Whisper Flow*–style dictation tool that runs entirely on your own hardware.
-Press a hotkey, talk, and watch your words appear in whatever app you're in.
-No cloud. No subscriptions. No latency spikes when the Wi-Fi gets moody.
-
-*Phonos slays the paid competition — your wallet will feel the difference.* ☠️
+A self-hosted dictation tool that keeps audio on hardware you control. Press a
+hotkey, speak, and Phonos pastes the transcript into the app you were using.
 
 </div>
 
-───
+---
 
-## 🗡️ Why Phonos?
+## Why Phonos?
 
-The name means "murder" in Greek. We're not subtle about who we're coming for.
-
-| ☁️ Cloud dictation (Otter, Rev, Whisper Flow et al.) | 🔪 Phonos |
+| Cloud dictation | Phonos |
 |---|---|
-| Your audio leaves your machine | Stays local, always |
-| Subscription ($5–$30/mo) | Free, forever |
-| Latency depends on your ISP | Bounded by your CPU |
-| Privacy? lol | Open source, auditable |
+| Audio is processed by a remote service | Audio is sent only to your configured server |
+| Usually subscription-based | Free and open source |
+| Latency depends on internet and vendor load | Latency depends on your chosen hardware/model |
 | One model fits all | Pick the model for your hardware |
-| VC-funded, may pivot/raise prices/enshittify | No investors to disappoint |
+| Vendor behavior is opaque | Server and client code are auditable |
 
-───
+---
 
-## ⚡ How it works
+## How it works
 
-1. **Press a hotkey** — hold it down or toggle, your call.
-2. **Talk** — your Mac captures the audio.
-3. **Whisper transcribes** — your server runs `faster-whisper` in a dedicated subprocess, fully offline.
-4. **Text appears** — pasted directly into whatever app you're using.
+1. **Press a hotkey** - hold it down or toggle recording.
+2. **Speak** - the Mac app records microphone audio.
+3. **Transcribe** - the server runs `faster-whisper` in a dedicated subprocess.
+4. **Paste** - the transcript is pasted into the previously active app, with clipboard fallback.
 
-───
+---
 
-## 🏗️ Architecture
+## Architecture
 
-The server runs each Whisper model in its own **dedicated subprocess**. The main FastAPI process stays lean (~50 MB) and communicates with the worker via local message queues. When you switch models via `PUT /models/active`, the old subprocess is killed and a new one spawns with the requested model. The operating system reclaims **every byte** from the old process — Python heap, CTranslate2 mmap regions, ONNX runtime buffers. Nothing lingers. Switch from `medium.en` to `tiny.en` and RSS drops by ~2 GB, guaranteed.
+The server runs the active Whisper model in a dedicated subprocess. The main
+FastAPI process communicates with that worker through local queues. When you
+switch models via `PUT /models/active`, the old worker is stopped and a new
+worker is started with the requested model, allowing the operating system to
+reclaim model memory cleanly.
 
-This is the same pattern production ML serving systems use (one process per model instance), just without the Kubernetes waste 🔥
+The server is intended for localhost, LAN, or private-network use such as
+Tailscale. Set `PHONOS_AUTH_TOKEN` before exposing it beyond localhost.
 
-───
+---
 
-## 🚀 Quick start
+## Quick start
 
 ### Server
 
 ```bash
 git clone https://github.com/jb381/phonos && cd phonos/apps/server
 cp .env.example .env          # optional: set PHONOS_AUTH_TOKEN
-docker compose up -d          # boom, transcription server on :8765
+docker compose up -d          # transcription server on :8765
 ```
 
 Without Docker:
@@ -81,40 +78,45 @@ cd apps/macos
 open Phonos.dmg               # then drag to Applications
 ```
 
-Releases are triggered by `git tag vX.Y.Z && git push --tags` — CI builds, signs (ad-hoc), and publishes a DMG automatically.
+Releases are triggered by `git tag vX.Y.Z && git push --tags`. CI builds,
+ad-hoc signs, and publishes a DMG automatically.
 
-> **No Apple Developer account = ad-hoc signing.** Gatekeeper will complain on first launch — right-click the app and choose **Open**, or go to System Settings → Privacy & Security and click **Open Anyway**. Accessibility permission must be re-granted after each ad-hoc rebuild. Fork out $99/yr for an Apple Developer account and we can switch to proper Developer ID signing + notarization — contributions welcome.
+> Current release builds are ad-hoc signed and not notarized. Gatekeeper may
+> require right-clicking the app and choosing **Open**, or using **Open Anyway**
+> in System Settings -> Privacy & Security. Accessibility permission may need to
+> be re-granted after ad-hoc rebuilds.
 >
-> To silence Gatekeeper's whining from the terminal:
+> To remove the quarantine attribute from the terminal:
 > ```bash
 > xattr -dr com.apple.quarantine /Applications/Phonos.app
 > ```
-> *Yes, it's the macOS equivalent of "turn it off and on again." No, we don't have the $99 either.*
 
-───
+---
 
-## ✨ Features
+## Features
 
-- 🎙️ Menu-bar status item (idle / recording)
-- ⌨️ Global hotkey (Control-Space by default, customizable)
-- 🎮 Hold-to-record and toggle recording modes
-- 📋 Direct auto-paste into active application
-- 🔄 Model selector with live switching from the server
-- 📜 Recent transcript history in the menu bar
+- Menu-bar app with workflow status
+- Global hotkey, defaulting to Control-Space
+- Hold-to-record and toggle recording modes
+- Direct paste into the previously active application
+- Clipboard fallback when Accessibility permission is not granted
+- First-run setup for permissions and server connection
+- Model selector with live switching from the server
+- Recent transcript history in the menu bar
 
-───
+---
 
-## 📋 Requirements
+## Requirements
 
 | Component    | What you need                              |
 |--------------|--------------------------------------------|
-| Server       | Docker, a CPU (or GPU if you're fancy 🧊) |
+| Server       | Docker, a CPU, or a supported GPU          |
 | Client       | macOS 14+, Xcode 15+                       |
 | Network      | [Tailscale](https://tailscale.com) or same LAN |
 
-───
+---
 
-## 📡 API
+## API
 
 | Method | Path             | Purpose                    |
 |--------|------------------|----------------------------|
@@ -126,9 +128,9 @@ Releases are triggered by `git tag vX.Y.Z && git push --tags` — CI builds, sig
 
 `PUT /models/active` and `POST /transcribe` require auth when `PHONOS_AUTH_TOKEN` is set.
 
-───
+---
 
-## 🔧 Server config
+## Server config
 
 ```env
 PHONOS_AUTH_TOKEN=          # leave empty to skip auth
@@ -145,34 +147,28 @@ PHONOS_MAX_UPLOAD_MB=100
 
 Docker Compose binds to `127.0.0.1` by default. For remote access, set `PHONOS_BIND=0.0.0.0` and `PHONOS_AUTH_TOKEN`.
 
-───
+---
 
-## 📊 Models
+## Models
 
 All models are English-optimized. Larger models are more accurate but slower and need more memory.
 
 | Model             | Params | Notes                                 |
 |-------------------|--------|---------------------------------------|
-| `tiny.en`         | 39M    | Fastest, lowest memory 🏃              |
+| `tiny.en`         | 39M    | Fastest, lowest memory                  |
 | `base.en`         | 74M    | Fast, decent English quality           |
-| `small.en`        | 244M   | Good quality/speed — **recommended CPU daily driver** ✅ |
+| `small.en`        | 244M   | Good quality/speed; recommended CPU daily driver |
 | `medium.en`       | 769M   | Better accuracy, handles harder speech |
-| `turbo`           | 798M   | Speed-optimized, multilingual 🌍       |
+| `turbo`           | 798M   | Speed-optimized, multilingual          |
 | `distil-large-v3` | 756M   | Distilled large, strong English        |
-| `large-v3`        | 1550M  | Highest quality, very slow on CPU 💀   |
+| `large-v3`        | 1550M  | Highest quality, very slow on CPU      |
 
-Start with `small.en`. Not accurate enough? Try `turbo` or `distil-large-v3`. `large-v3` if you hate yourself.
+Start with `small.en` for CPU usage. Try `turbo` or `distil-large-v3` if you
+need higher quality or multilingual transcription. Use `large-v3` only when the
+server has enough CPU/GPU capacity and memory.
 
-───
+---
 
-## 📄 License
+## License
 
-MIT — do whatever, just keep the Greek in the README. Preferably the murder one.
-
-───
-
-<div align="center">
-
-*made with ☕, 🎧, a mild obsession with terminal aesthetics, and a name that apparently means murder*
-
-</div>
+MIT.

@@ -503,9 +503,9 @@ Acceptance criteria:
 
 #### Keep docs honest and professional
 
-- [ ] Audit README, architecture, deployment, and roadmap for claims that are not implemented.
-- [ ] Replace overclaimed checklist items with explicit future tasks.
-- [ ] Decide how much of the current joke-heavy README tone belongs in the project long term.
+- [x] Audit README, architecture, deployment, and roadmap for claims that are not implemented.
+- [x] Replace overclaimed checklist items with explicit future tasks.
+- [x] Decide how much of the current joke-heavy README tone belongs in the project long term.
 - [ ] Add a short privacy/security section that explains local processing, auth, temp files, logs, and history behavior.
 - [ ] Add a troubleshooting table for common user-facing errors.
 
