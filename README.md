@@ -149,6 +149,32 @@ Docker Compose binds to `127.0.0.1` by default. For remote access, set `PHONOS_B
 
 ---
 
+## Privacy and security
+
+- Audio is recorded by the macOS app and uploaded only to the configured Phonos server.
+- The server does not require internet access after model files are downloaded and cached.
+- Set `PHONOS_AUTH_TOKEN` before binding the server to a LAN or private network interface.
+- The macOS auth token is stored in Keychain.
+- Temporary client recording files are removed after each transcription flow completes.
+- Recent transcript history is session-only in the current app.
+- Server logs include request metadata and transcript text for debugging; run the server only where those logs are acceptable.
+
+---
+
+## Troubleshooting
+
+| Symptom | What to check |
+|---|---|
+| Server connection fails | Confirm the server URL, `docker compose ps`, and `curl http://<server>:8765/health`. |
+| Auth errors | Ensure `PHONOS_AUTH_TOKEN` matches the token in the macOS Settings window. |
+| Nothing pastes | Grant Accessibility permission, or use the clipboard fallback from recent transcript history. |
+| No microphone input | Grant Microphone permission in System Settings -> Privacy & Security. |
+| Transcription times out | Use a smaller model or raise `PHONOS_TRANSCRIBE_TIMEOUT_SECONDS`. |
+| Model switch is slow | Large models can take time to download and load, especially on CPU-only hosts. |
+| Gatekeeper blocks launch | Right-click the app and choose Open, or use Open Anyway in System Settings. |
+
+---
+
 ## Models
 
 All models are English-optimized. Larger models are more accurate but slower and need more memory.
