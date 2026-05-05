@@ -128,6 +128,15 @@ components:
         model:
           type: string
           description: Currently loaded model name
+        worker_alive:
+          type: boolean
+          description: Whether the model worker process is currently alive
+        last_error:
+          type: string
+          description: Last model loading or transcription availability error
+        last_load_seconds:
+          type: number
+          description: Seconds spent loading the current or last attempted model
         device:
           type: string
         compute_type:

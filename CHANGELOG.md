@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - Unreleased
+
+**Quality-of-Life and Hardening Release**
+
+### Fixed
+
+- Made server model loading transactional so `/health` and `/models/active` no longer report a model as loaded when worker startup failed.
+- Added explicit model worker health, last load error, and model load timing to health responses.
+
+### Changed
+
+- Added a post-1.0 implementation backlog to the roadmap with prioritized reliability, security, UX, observability, testing, and release-polish tasks.
+- Corrected roadmap items that were marked complete but are still future work.
+
 ## [1.0.0] - 2026-05-05
 
 ### Added

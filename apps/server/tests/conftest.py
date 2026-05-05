@@ -20,6 +20,10 @@ def mock_model_manager():
         settings = Settings(auth_token="test-token")
         manager = ModelManager(settings)
         manager._model_name = settings.model
+        manager._status = "loaded"
+        manager._last_load_seconds = 0.01
+        manager._process = MagicMock()
+        manager._process.is_alive.return_value = True
 
         manager.transcribe = MagicMock(
             return_value={

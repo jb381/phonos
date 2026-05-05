@@ -1,8 +1,10 @@
 import logging
 import multiprocessing as mp
 import os
+import queue
 import signal
 import threading
+import time
 
 from phonos_server.config import Settings
 
@@ -62,6 +64,9 @@ class ModelManager:
         self.settings = settings
         self._lock = threading.Lock()
         self._model_name: str = ""
+        self._status: str = "loading"
+        self._last_error: str = ""
+        self._last_load_seconds: float = 0
         self._process: mp.Process | None = None
         self._cmd_queue: mp.Queue | None = None
         self._result_queue: mp.Queue | None = None
@@ -70,11 +75,42 @@ class ModelManager:
     def active_model(self) -> str:
         return self._model_name
 
+    @property
+    def status(self) -> str:
+        if self._status == "loaded" and not self.worker_alive:
+            return "error"
+        return self._status
+
+    @property
+    def last_error(self) -> str:
+        return self._last_error
+
+    @property
+    def last_load_seconds(self) -> float:
+        return self._last_load_seconds
+
+    @property
+    def worker_alive(self) -> bool:
+        return self._process is not None and self._process.is_alive()
+
     def load(self, model_name: str):
         with self._lock:
             self._stop_worker()
+            self._status = "loading"
+            self._last_error = ""
+            start = time.time()
+            try:
+                self._start_worker(model_name)
+            except Exception as exc:
+                self._stop_worker()
+                self._model_name = ""
+                self._status = "error"
+                self._last_error = str(exc)
+                self._last_load_seconds = round(time.time() - start, 2)
+                raise
             self._model_name = model_name
-            self._start_worker(model_name)
+            self._status = "loaded"
+            self._last_load_seconds = round(time.time() - start, 2)
 
     def _start_worker(self, model_name: str):
         ctx = mp.get_context("spawn")
@@ -91,7 +127,11 @@ class ModelManager:
             ),
         )
         self._process.start()
-        msg = self._result_queue.get(timeout=REQUEST_TIMEOUT)
+        try:
+            msg = self._result_queue.get(timeout=REQUEST_TIMEOUT)
+        except queue.Empty as exc:
+            self._stop_worker()
+            raise RuntimeError(f"Timed out loading model: {model_name}") from exc
         if msg.get("type") != "ready":
             self._stop_worker()
             raise RuntimeError(f"Worker failed to load model: {msg}")
@@ -125,10 +165,13 @@ class ModelManager:
         with self._lock:
             self._stop_worker()
             self._model_name = ""
+            self._status = "loading"
 
     def transcribe(self, audio_path: str, **kwargs):
         with self._lock:
             if self._process is None or not self._process.is_alive():
+                self._status = "error"
+                self._last_error = "No model loaded"
                 raise RuntimeError("No model loaded")
             self._cmd_queue.put(
                 {

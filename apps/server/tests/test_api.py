@@ -1,3 +1,6 @@
+import contextlib
+
+
 class TestHealth:
     def test_health_ok(self, client):
         response = client.get("/health")
@@ -5,6 +8,9 @@ class TestHealth:
         data = response.json()
         assert "status" in data
         assert "model" in data
+        assert "worker_alive" in data
+        assert "last_error" in data
+        assert "last_load_seconds" in data
         assert "device" in data
         assert "compute_type" in data
 
@@ -57,6 +63,50 @@ class TestModelSwitch:
             headers=auth_headers,
         )
         assert response.status_code == 422
+
+    def test_set_active_model_load_failure(self, client_with_auth, auth_headers, monkeypatch):
+        import phonos_server.main as main_mod
+
+        def fail_load(model):
+            main_mod.manager._model_name = ""
+            main_mod.manager._status = "error"
+            main_mod.manager._last_error = f"Timed out loading model: {model}"
+            raise RuntimeError(f"Timed out loading model: {model}")
+
+        monkeypatch.setattr(main_mod.manager, "load", fail_load)
+
+        response = client_with_auth.put(
+            "/models/active",
+            json={"model": "tiny.en"},
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 503
+        health = client_with_auth.get("/health").json()
+        assert health["status"] == "error"
+        assert health["model"] == ""
+        assert "tiny.en" in health["last_error"]
+
+
+class TestModelManager:
+    def test_load_does_not_publish_failed_model(self):
+        from unittest.mock import patch
+
+        from phonos_server.config import Settings
+        from phonos_server.models import ModelManager
+
+        manager = ModelManager(Settings())
+
+        with (
+            patch.object(ModelManager, "_start_worker", side_effect=RuntimeError("boom")),
+            patch.object(ModelManager, "_stop_worker", return_value=None),
+            contextlib.suppress(RuntimeError),
+        ):
+            manager.load("tiny.en")
+
+        assert manager.active_model == ""
+        assert manager.status == "error"
+        assert manager.last_error == "boom"
 
 
 class TestTranscribe:

@@ -36,7 +36,7 @@
 
 - [x] FastAPI application with uvicorn
 - [x] Configuration via environment variables
-- [x] `GET /health` — returns model status and uptime
+- [x] `GET /health` — returns model status and runtime config
 - [x] `GET /models` — lists configured model names
 - [x] `GET /models/active` — returns currently loaded model
 - [x] `PUT /models/active` — switches active model with lock safety
@@ -107,14 +107,14 @@
 - [x] Request microphone permission
 - [x] Configure `AVAudioEngine` for microphone input
 - [x] Record audio to temp WAV file
-- [x] Recording indicator (status item change, audio level)
+- [x] Recording indicator (status item change)
 
 ### 4.2 Transcription Upload
 
 - [x] Upload recorded audio to `POST /transcribe`
 - [x] Handle server errors (offline, auth failure, model loading)
-- [x] Display transcript in menu UI
-- [x] Show transcription metadata (duration, processing time, model)
+- [x] Display recent transcripts in menu/history UI
+- [ ] Show transcription metadata (duration, processing time, model)
 
 **Commit**: `93f3e40` — `feat: bootstrap phonos monorepo with server and mac client`
 
@@ -150,7 +150,7 @@
 - [x] Accessibility permission for paste automation
 - [x] Copy transcript to clipboard
 - [x] Simulate `Cmd+V` in frontmost application
-- [x] Attempt clipboard restoration after paste
+- [ ] Attempt clipboard restoration after paste
 - [x] Fallback: clipboard-only mode if accessibility not granted
 
 **Commit**: `93f3e40` — `feat: bootstrap phonos monorepo with server and mac client`
@@ -220,6 +220,318 @@ PHONOS_VAD_FILTER=true       # Enable voice activity detection
 |---------------|----------------------------------|----------------------------------|
 | Server URL     | `http://localhost:8765`          | Server address                   |
 | Auth Token     | `""` (empty)                     | Bearer token for server auth     |
-| Hotkey         | `Fn/Globe` → `Left Control`      | Recording trigger key            |
+| Hotkey         | `Control-Space`                  | Recording trigger shortcut       |
 | Mode           | `hold`                           | `hold` or `toggle`               |
 | Model          | `base.en`                        | Selected from server model list  |
+
+---
+
+## Post-1.0 To Do
+
+This backlog comes from the first release code and feature review. Items are grouped by priority and include concrete acceptance criteria so they can be turned into focused implementation tasks.
+
+### P0 — Reliability and Data Safety
+
+#### Harden model loading state
+
+- [ ] Make `ModelManager.load()` transactional: do not publish the new active model until the worker has successfully loaded.
+- [ ] If worker startup fails, times out, or exits early, set the model status to `error` and clear or restore the active model consistently.
+- [ ] Add explicit status fields for `loading`, `loaded`, and `error` instead of deriving health from a non-empty model string.
+- [ ] Return useful health details: active model, worker alive, last load error, last load duration, uptime.
+- [ ] Add tests for startup failure, timeout, worker crash, and failed model switch.
+- [ ] Update `packages/protocol/openapi.yaml` after response fields change.
+
+Relevant files:
+- `apps/server/phonos_server/models.py`
+- `apps/server/phonos_server/main.py`
+- `apps/server/tests/test_api.py`
+- `packages/protocol/openapi.yaml`
+
+Acceptance criteria:
+- `/health` never reports `ok` when the worker process is missing or dead.
+- A failed model switch does not leave the server claiming the new model is loaded.
+- Tests cover both successful and failed model switches.
+
+#### Align transcription timeout behavior
+
+- [ ] Make server request timeout configurable with `PHONOS_TRANSCRIBE_TIMEOUT_SECONDS`.
+- [ ] Make macOS client request timeout configurable or derive a sensible value from server/model settings.
+- [ ] Return a distinct timeout error from the server, preferably `504`, when transcription exceeds the configured limit.
+- [ ] Show a user-facing timeout message that suggests using a smaller model or increasing the timeout.
+- [ ] Add tests for timeout responses and client error decoding.
+
+Relevant files:
+- `apps/server/phonos_server/models.py`
+- `apps/server/phonos_server/config.py`
+- `apps/macos/Sources/ServerClient.swift`
+- `apps/macos/Sources/SettingsView.swift`
+
+Acceptance criteria:
+- The client no longer gives up at 120s while the server continues working for up to 600s.
+- Timeout errors are distinguishable from network failures and generic server failures.
+
+#### Limit upload size and stream audio safely
+
+- [ ] Add `PHONOS_MAX_UPLOAD_MB` with a conservative default.
+- [ ] Reject oversized requests with `413 Payload Too Large`.
+- [ ] Stream uploads to a temp file instead of reading the whole file into memory.
+- [ ] Validate extension and empty file behavior after streaming.
+- [ ] Add server tests for empty files, valid files, unsupported files, and oversized uploads.
+- [ ] Document upload limits in README, deployment docs, and OpenAPI.
+
+Relevant files:
+- `apps/server/phonos_server/transcription.py`
+- `apps/server/phonos_server/config.py`
+- `apps/server/tests/test_api.py`
+- `packages/protocol/openapi.yaml`
+- `README.md`
+- `docs/deployment.md`
+
+Acceptance criteria:
+- Large uploads cannot exhaust server memory.
+- Oversized uploads return `413` with a clear JSON error.
+
+#### Delete temporary recordings on macOS
+
+- [ ] Delete recorded temp WAV files after a successful or failed upload.
+- [ ] Ensure deletion happens in all paths: success, server error, auth error, timeout, paste failure, and empty transcript.
+- [ ] Keep an optional debug setting only if needed for troubleshooting.
+- [ ] Add logging or debug-only diagnostics for cleanup failures.
+
+Relevant files:
+- `apps/macos/Sources/AudioRecorder.swift`
+- `apps/macos/Sources/MenuBarController.swift`
+
+Acceptance criteria:
+- Repeated dictation sessions do not accumulate `phonos_recording_*.wav` files in the temp directory.
+- Cleanup does not delete an active recording.
+
+### P1 — Security and Professional Release Quality
+
+#### Store auth token in Keychain
+
+- [ ] Replace `@AppStorage("authToken")` with a Keychain-backed storage helper.
+- [ ] Migrate any existing token from `UserDefaults` to Keychain on first launch after upgrade.
+- [ ] Clear the old `UserDefaults` token after successful migration.
+- [ ] Keep SwiftUI settings binding behavior simple and predictable.
+- [ ] Add error handling for Keychain read/write failures.
+
+Relevant files:
+- `apps/macos/Sources/SettingsManager.swift`
+- `apps/macos/Sources/SettingsView.swift`
+- `apps/macos/Sources/ServerClient.swift`
+
+Acceptance criteria:
+- Auth tokens are no longer persisted in plain `UserDefaults`.
+- Existing users keep their configured token after upgrading.
+
+#### Add proper first-run setup
+
+- [ ] Add a first-run window or checklist covering microphone permission, accessibility permission, server URL, auth token, connection test, and model choice.
+- [ ] Detect missing microphone permission before the first recording attempt.
+- [ ] Detect missing Accessibility permission before paste automation fails.
+- [ ] Add direct buttons to open the relevant macOS privacy settings panes.
+- [ ] Store first-run completion state, but allow reopening setup from the menu.
+
+Relevant files:
+- `apps/macos/Sources/PhonosApp.swift`
+- `apps/macos/Sources/MenuBarController.swift`
+- `apps/macos/Sources/SettingsView.swift`
+- `apps/macos/Sources/AudioRecorder.swift`
+- `apps/macos/Sources/PasteEngine.swift`
+
+Acceptance criteria:
+- A new user can configure Phonos without reading docs first.
+- Missing permissions are surfaced before the user loses a dictation.
+
+#### Improve distribution polish
+
+- [ ] Add launch-at-login support.
+- [ ] Add a stable signing/notarization path for Developer ID releases.
+- [ ] Keep ad-hoc signing available for local development builds.
+- [ ] Add a consistent bundle identifier and release metadata.
+- [ ] Consider Sparkle or another update mechanism for signed releases.
+- [ ] Document release steps and required signing environment variables.
+
+Relevant files:
+- `apps/macos/build.sh`
+- `.github/workflows/ci.yml`
+- `README.md`
+- `docs/deployment.md`
+
+Acceptance criteria:
+- Release builds can be signed and notarized without manual local steps.
+- Users do not need quarantine workarounds for official releases.
+
+### P1 — User Experience and Workflow
+
+#### Add richer menu-bar state feedback
+
+- [ ] Add distinct status states: idle, recording, transcribing, pasted, copied-only, server offline, auth failed, and error.
+- [ ] Update menu item titles while work is in progress.
+- [ ] Disable conflicting actions during recording or transcription.
+- [ ] Add a short success/error notification or menu subtitle after each transcription.
+- [ ] Keep the last error available in the menu for troubleshooting.
+
+Relevant files:
+- `apps/macos/Sources/MenuBarController.swift`
+- `apps/macos/Sources/ServerClient.swift`
+- `apps/macos/Sources/PasteEngine.swift`
+
+Acceptance criteria:
+- After recording stops, the user can tell whether Phonos is uploading, transcribing, pasting, or failed.
+- Long transcriptions do not look like the app has gone idle.
+
+#### Handle audio write failures explicitly
+
+- [ ] Stop swallowing `AVAudioFile.write` failures in the audio tap.
+- [ ] Capture write errors from the tap and surface them when stopping or during recording.
+- [ ] Stop recording safely if disk/write errors occur.
+- [ ] Add user-facing messages for microphone, file write, and engine failures.
+
+Relevant files:
+- `apps/macos/Sources/AudioRecorder.swift`
+- `apps/macos/Sources/MenuBarController.swift`
+
+Acceptance criteria:
+- Corrupt or unwritable recordings fail with a specific local error before upload.
+
+#### Add cancellation and recovery
+
+- [ ] Add a way to cancel an in-progress transcription from the menu.
+- [ ] Cancel the client request when the user cancels.
+- [ ] Decide server behavior for cancellation: leave worker running, add request IDs, or move to a cancellable worker protocol.
+- [ ] Make the UI recover cleanly after cancellation.
+
+Relevant files:
+- `apps/macos/Sources/MenuBarController.swift`
+- `apps/macos/Sources/ServerClient.swift`
+- `apps/server/phonos_server/models.py`
+- `apps/server/phonos_server/transcription.py`
+
+Acceptance criteria:
+- Users can recover from a too-large recording or too-slow model without quitting the app.
+
+#### Improve transcript history
+
+- [ ] Decide whether history is session-only or optionally persistent.
+- [ ] Add a privacy setting for persistent history.
+- [ ] Store metadata with each transcript: created time, model, language, audio duration, processing time, paste/copy result.
+- [ ] Add search/filter in the history window.
+- [ ] Add per-entry actions: copy, paste, delete.
+- [ ] Add clear-all confirmation for persistent history.
+
+Relevant files:
+- `apps/macos/Sources/TranscriptHistory.swift`
+- `apps/macos/Sources/MenuBarController.swift`
+- `apps/macos/Sources/SettingsView.swift`
+
+Acceptance criteria:
+- Users can find, reuse, and delete recent dictations without leaving unclear privacy behavior.
+
+#### Improve model selection UX
+
+- [ ] Add model metadata to server responses or a client-side model catalog.
+- [ ] Show approximate RAM, speed, language support, and recommended use for each model.
+- [ ] Warn before switching to very large models on CPU.
+- [ ] Show model loading progress/state while switching.
+- [ ] Disable transcription during model switching or queue it intentionally.
+
+Relevant files:
+- `apps/server/phonos_server/config.py`
+- `apps/server/phonos_server/main.py`
+- `apps/macos/Sources/SettingsView.swift`
+- `packages/protocol/openapi.yaml`
+
+Acceptance criteria:
+- Users can choose a model based on expected performance, not only the model name.
+
+#### Improve network discovery
+
+- [ ] Support interfaces beyond `en0` and `en1`.
+- [ ] Handle non-`/24` local networks.
+- [ ] Add a Tailscale-specific discovery path or documented MagicDNS flow.
+- [ ] Show scan progress and partial results.
+- [ ] Avoid launching 254 simultaneous requests without a concurrency limit.
+
+Relevant files:
+- `apps/macos/Sources/NetworkScanner.swift`
+- `apps/macos/Sources/SettingsView.swift`
+- `docs/deployment.md`
+
+Acceptance criteria:
+- Network scan works on common Wi-Fi, Ethernet, and Tailscale setups or clearly explains why it cannot.
+
+### P2 — Observability, Testing, and Protocol Discipline
+
+#### Add server observability
+
+- [ ] Track uptime, request count, transcription count, last error, active/busy state, current model, and last processing duration.
+- [ ] Add `/metrics` or an expanded `/health` response.
+- [ ] Ensure auth-sensitive values are never logged or returned.
+- [ ] Add structured logs for model load, transcription start/end, timeout, and worker restart.
+
+Relevant files:
+- `apps/server/phonos_server/main.py`
+- `apps/server/phonos_server/models.py`
+- `apps/server/phonos_server/transcription.py`
+- `packages/protocol/openapi.yaml`
+
+Acceptance criteria:
+- A deployment owner can diagnose “offline,” “busy,” “model loading,” and “last transcription failed” without SSHing into the process first.
+
+#### Strengthen tests around real failure modes
+
+- [ ] Add tests for model worker load failure and worker death.
+- [ ] Add tests for upload size limit and streaming upload behavior.
+- [ ] Add tests for auth on all protected endpoints.
+- [ ] Add OpenAPI contract checks for response shapes.
+- [ ] Add Swift unit tests where feasible for URL building, error decoding, and settings storage.
+- [ ] Add a lightweight end-to-end smoke test for the server container.
+
+Relevant files:
+- `apps/server/tests/test_api.py`
+- `apps/server/tests/conftest.py`
+- `packages/protocol/openapi.yaml`
+- `.github/workflows/ci.yml`
+
+Acceptance criteria:
+- CI covers the failure modes most likely to break a real user after v1.
+
+#### Keep docs honest and professional
+
+- [ ] Audit README, architecture, deployment, and roadmap for claims that are not implemented.
+- [ ] Replace overclaimed checklist items with explicit future tasks.
+- [ ] Decide how much of the current joke-heavy README tone belongs in the project long term.
+- [ ] Add a short privacy/security section that explains local processing, auth, temp files, logs, and history behavior.
+- [ ] Add a troubleshooting table for common user-facing errors.
+
+Relevant files:
+- `README.md`
+- `docs/architecture.md`
+- `docs/deployment.md`
+- `docs/roadmap.md`
+
+Acceptance criteria:
+- A new user or contributor can trust that documented features match shipped behavior.
+
+### P3 — Future Capability
+
+#### Streaming transcription mode
+
+- [ ] Design a WebSocket protocol for audio chunks, partial transcripts, final transcripts, errors, and cancellation.
+- [ ] Add server-side chunk handling and VAD strategy.
+- [ ] Add client-side chunk streaming from `AVAudioEngine`.
+- [ ] Add live transcript preview.
+- [ ] Paste final transcript only after completion.
+- [ ] Compare latency and quality against current upload mode before making it default.
+
+Relevant files:
+- `apps/server/phonos_server/main.py`
+- `apps/server/phonos_server/transcription.py`
+- `apps/macos/Sources/AudioRecorder.swift`
+- `apps/macos/Sources/MenuBarController.swift`
+- `packages/protocol/openapi.yaml`
+
+Acceptance criteria:
+- Streaming mode materially lowers perceived latency without making the reliable upload mode worse.

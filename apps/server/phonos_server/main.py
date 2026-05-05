@@ -35,8 +35,11 @@ app = FastAPI(title="Phonos", version="0.1.0", lifespan=lifespan)
 @app.get("/health")
 def health():
     return {
-        "status": "ok" if manager.active_model else "loading",
+        "status": "ok" if manager.status == "loaded" else manager.status,
         "model": manager.active_model,
+        "worker_alive": manager.worker_alive,
+        "last_error": manager.last_error,
+        "last_load_seconds": manager.last_load_seconds,
         "device": get_settings().device,
         "compute_type": get_settings().compute_type,
     }
@@ -54,7 +57,7 @@ def list_models(settings: Settings = Depends(get_settings)):
 def get_active_model():
     return {
         "model": manager.active_model,
-        "status": "loaded" if manager.active_model else "loading",
+        "status": manager.status,
     }
 
 
@@ -69,8 +72,11 @@ def set_active_model(
             status_code=400,
             detail=f"Unknown model: {body.model}. Available: {settings.model_list()}",
         )
-    manager.load(body.model)
-    return {"model": manager.active_model, "status": "loaded"}
+    try:
+        manager.load(body.model)
+    except RuntimeError as e:
+        raise HTTPException(status_code=503, detail=str(e)) from e
+    return {"model": manager.active_model, "status": manager.status}
 
 
 @app.post("/transcribe")
