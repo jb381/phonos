@@ -9,19 +9,24 @@ echo "=== Building Phonos ${VERSION} (build ${BUILD}) ==="
 # Build the binary
 swift build -c release 2>&1
 
-# Create app bundle
+# Create app bundle (clean slate)
 APP_DIR=".build/Phonos.app"
-mkdir -p "$APP_DIR/Contents/MacOS"
+rm -rf "$APP_DIR"
+mkdir -p "$APP_DIR/Contents/MacOS" "$APP_DIR/Contents/Resources"
 
 # Copy binary
 cp .build/release/Phonos "$APP_DIR/Contents/MacOS/Phonos"
 
-# Copy SPM resource bundles (required for dependencies like KeyboardShortcuts)
-# SPM's Bundle.module looks for these at the .app root, not Contents/Resources
-for bundle in .build/release/*.bundle; do
-    [ -d "$bundle" ] && cp -R "$bundle" "$APP_DIR/"
-done
-# Fix permissions on copied bundles (CI builds preserve runner ownership)
+# Copy KeyboardShortcuts localization files into the main app bundle
+# (Bundle.module falls back to Bundle.main, so .lproj files need to be here)
+LPROJ_SRC="Packages/KeyboardShortcuts/Localization"
+if [ -d "$LPROJ_SRC" ]; then
+    for lproj in "$LPROJ_SRC"/*.lproj; do
+        [ -d "$lproj" ] && cp -R "$lproj" "$APP_DIR/Contents/Resources/"
+    done
+fi
+
+# Fix permissions
 chmod -R a+rX "$APP_DIR"
 
 # Write Info.plist
@@ -52,6 +57,7 @@ cat > "$APP_DIR/Contents/Info.plist" << PLIST
 </plist>
 PLIST
 
+# Determine signing identity
 SIGN_IDENTITY="${PHONOS_CODESIGN_IDENTITY:-}"
 if [ -z "$SIGN_IDENTITY" ]; then
     SIGN_IDENTITY=$(security find-identity -v -p codesigning | awk '/Phonos Local Development|Apple Development|Developer ID Application|Mac Developer/ { print $2; exit }')
@@ -59,12 +65,14 @@ fi
 
 if [ -n "$SIGN_IDENTITY" ]; then
     echo "Signing with: $SIGN_IDENTITY"
-    codesign --force --deep --sign "$SIGN_IDENTITY" "$APP_DIR"
 else
+    SIGN_IDENTITY="-"
     echo "Warning: no stable code-signing identity found; using ad-hoc signing."
     echo "Accessibility permission may need to be re-granted after each rebuild."
-    codesign --force --deep --sign - "$APP_DIR"
 fi
+
+# Sign the app (no files outside Contents/, so codesign is happy)
+codesign --force --deep --sign "$SIGN_IDENTITY" "$APP_DIR"
 
 # Create DMG
 echo ""
