@@ -295,8 +295,8 @@ Acceptance criteria:
 
 #### Delete temporary recordings on macOS
 
-- [ ] Delete recorded temp WAV files after a successful or failed upload.
-- [ ] Ensure deletion happens in all paths: success, server error, auth error, timeout, paste failure, and empty transcript.
+- [x] Delete recorded temp WAV files after a successful or failed upload.
+- [x] Ensure deletion happens in all paths: success, server error, auth error, timeout, paste failure, and empty transcript.
 - [ ] Keep an optional debug setting only if needed for troubleshooting.
 - [ ] Add logging or debug-only diagnostics for cleanup failures.
 

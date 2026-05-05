@@ -168,6 +168,9 @@ final class MenuBarController: NSObject, NSWindowDelegate, HotkeyManagerDelegate
         updateRecordingUI(false)
 
         guard let fileURL = await recorder.getOutputURL() else { return }
+        defer {
+            try? FileManager.default.removeItem(at: fileURL)
+        }
         let pasteTargetBundleID = lastPasteTargetBundleID
 
         do {
