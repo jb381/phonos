@@ -179,7 +179,15 @@ final class MenuBarController: NSObject, NSWindowDelegate, HotkeyManagerDelegate
 
     private func stopAndTranscribe() async {
         guard isRecording else { return }
-        await recorder.stopRecording()
+        do {
+            try await recorder.stopRecording()
+        } catch {
+            isRecording = false
+            updateRecordingUI(false)
+            updateWorkflowStatus("Error")
+            showError(error)
+            return
+        }
         isRecording = false
         updateRecordingUI(false)
         updateWorkflowStatus("Transcribing")

@@ -387,10 +387,10 @@ Acceptance criteria:
 
 #### Handle audio write failures explicitly
 
-- [ ] Stop swallowing `AVAudioFile.write` failures in the audio tap.
-- [ ] Capture write errors from the tap and surface them when stopping or during recording.
-- [ ] Stop recording safely if disk/write errors occur.
-- [ ] Add user-facing messages for microphone, file write, and engine failures.
+- [x] Stop swallowing `AVAudioFile.write` failures in the audio tap.
+- [x] Capture write errors from the tap and surface them when stopping or during recording.
+- [x] Stop recording safely if disk/write errors occur.
+- [x] Add user-facing messages for microphone, file write, and engine failures.
 
 Relevant files:
 - `apps/macos/Sources/AudioRecorder.swift`

@@ -4,11 +4,13 @@ import Foundation
 enum RecorderError: LocalizedError {
     case permissionDenied
     case engineStartFailed(String)
+    case writeFailed(String)
 
     var errorDescription: String? {
         switch self {
         case .permissionDenied: return "Microphone permission denied"
         case .engineStartFailed(let msg): return "Audio engine failed: \(msg)"
+        case .writeFailed(let msg): return "Audio file write failed: \(msg)"
         }
     }
 }
@@ -17,6 +19,7 @@ actor AudioRecorder {
     private var engine: AVAudioEngine?
     private var outputFile: AVAudioFile?
     private var outputURL: URL?
+    private var writeErrorMessage: String?
 
     var isRecording: Bool {
         engine?.isRunning ?? false
@@ -37,6 +40,7 @@ actor AudioRecorder {
 
         let tempDir = FileManager.default.temporaryDirectory
         let url = tempDir.appendingPathComponent("phonos_recording_\(UUID().uuidString).wav")
+        writeErrorMessage = nil
 
         let engine = AVAudioEngine()
         let inputNode = engine.inputNode
@@ -46,7 +50,13 @@ actor AudioRecorder {
         self.outputFile = outputFile
 
         inputNode.installTap(onBus: 0, bufferSize: 4096, format: format) { buffer, _ in
-            try? outputFile.write(from: buffer)
+            do {
+                try outputFile.write(from: buffer)
+            } catch {
+                Task {
+                    await self.recordWriteFailure(error.localizedDescription)
+                }
+            }
         }
 
         engine.prepare()
@@ -62,14 +72,24 @@ actor AudioRecorder {
         return url
     }
 
-    func stopRecording() {
+    func stopRecording() throws {
         engine?.inputNode.removeTap(onBus: 0)
         engine?.stop()
         engine = nil
         outputFile = nil
+        if let writeErrorMessage {
+            self.writeErrorMessage = nil
+            throw RecorderError.writeFailed(writeErrorMessage)
+        }
     }
 
     func getOutputURL() -> URL? {
         outputURL
+    }
+
+    private func recordWriteFailure(_ message: String) async {
+        if writeErrorMessage == nil {
+            writeErrorMessage = message
+        }
     }
 }
