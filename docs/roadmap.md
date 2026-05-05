@@ -370,8 +370,8 @@ Acceptance criteria:
 
 #### Add richer menu-bar state feedback
 
-- [ ] Add distinct status states: idle, recording, transcribing, pasted, copied-only, server offline, auth failed, and error.
-- [ ] Update menu item titles while work is in progress.
+- [x] Add distinct status states: idle, recording, transcribing, pasted, copied-only, and error.
+- [x] Update menu item titles while work is in progress.
 - [ ] Disable conflicting actions during recording or transcription.
 - [ ] Add a short success/error notification or menu subtitle after each transcription.
 - [ ] Keep the last error available in the menu for troubleshooting.

@@ -10,6 +10,7 @@ final class MenuBarController: NSObject, NSWindowDelegate, HotkeyManagerDelegate
     private let settings = SettingsManager.shared
     private let history = TranscriptHistoryStore.shared
     private let recentMenu = NSMenu()
+    private let workflowStatusItem = NSMenuItem(title: "Status: Idle", action: nil, keyEquivalent: "")
     private var lastPasteTargetBundleID: String?
 
     override init() {
@@ -66,6 +67,10 @@ final class MenuBarController: NSObject, NSWindowDelegate, HotkeyManagerDelegate
 
     private func buildMenu() {
         let menu = NSMenu()
+
+        workflowStatusItem.isEnabled = false
+        menu.addItem(workflowStatusItem)
+        menu.addItem(.separator())
 
         let recordItem = NSMenuItem(title: "Start Recording", action: #selector(toggleRecording), keyEquivalent: "r")
         recordItem.target = self
@@ -165,7 +170,9 @@ final class MenuBarController: NSObject, NSWindowDelegate, HotkeyManagerDelegate
             _ = try await recorder.startRecording()
             isRecording = true
             updateRecordingUI(true)
+            updateWorkflowStatus("Recording")
         } catch {
+            updateWorkflowStatus("Error")
             showError(error)
         }
     }
@@ -175,8 +182,12 @@ final class MenuBarController: NSObject, NSWindowDelegate, HotkeyManagerDelegate
         await recorder.stopRecording()
         isRecording = false
         updateRecordingUI(false)
+        updateWorkflowStatus("Transcribing")
 
-        guard let fileURL = await recorder.getOutputURL() else { return }
+        guard let fileURL = await recorder.getOutputURL() else {
+            updateWorkflowStatus("Idle")
+            return
+        }
         defer {
             try? FileManager.default.removeItem(at: fileURL)
         }
@@ -190,21 +201,29 @@ final class MenuBarController: NSObject, NSWindowDelegate, HotkeyManagerDelegate
                 refreshRecentMenu()
             }
 
-            guard !result.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+            guard !result.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                updateWorkflowStatus("Idle")
+                return
+            }
 
             try? await Task.sleep(nanoseconds: 100_000_000)
             reactivatePasteTarget(bundleIdentifier: pasteTargetBundleID)
             try? await Task.sleep(nanoseconds: 150_000_000)
 
             do {
+                updateWorkflowStatus("Pasting")
                 try await paster.pasteText(result.text)
+                updateWorkflowStatus("Pasted")
             } catch PasteError.accessibilityDenied {
                 await paster.copyToClipboard(result.text)
+                updateWorkflowStatus("Copied to Clipboard")
                 showAccessibilityAlert()
             } catch {
                 await paster.copyToClipboard(result.text)
+                updateWorkflowStatus("Copied to Clipboard")
             }
         } catch {
+            updateWorkflowStatus("Error")
             showError(error)
         }
     }
@@ -226,11 +245,14 @@ final class MenuBarController: NSObject, NSWindowDelegate, HotkeyManagerDelegate
             }
             do {
                 try await paster.pasteText(lastTranscript)
+                updateWorkflowStatus("Pasted")
             } catch PasteError.accessibilityDenied {
                 await paster.copyToClipboard(lastTranscript)
+                updateWorkflowStatus("Copied to Clipboard")
                 showAccessibilityAlert()
             } catch {
                 await paster.copyToClipboard(lastTranscript)
+                updateWorkflowStatus("Copied to Clipboard")
             }
         }
     }
@@ -274,6 +296,11 @@ final class MenuBarController: NSObject, NSWindowDelegate, HotkeyManagerDelegate
             alert.addButton(withTitle: "OK")
             alert.runModal()
         }
+    }
+
+    @MainActor
+    private func updateWorkflowStatus(_ status: String) {
+        workflowStatusItem.title = "Status: \(status)"
     }
 
     private func showAccessibilityAlert() {

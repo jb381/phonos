@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed temporary macOS recording files after each transcription flow completes.
 - Moved macOS auth token storage from `UserDefaults` to Keychain, with migration for existing saved tokens.
 - Added a first-run setup window for microphone permission, Accessibility permission, server settings, and connection checks.
+- Added menu-bar workflow status for recording, transcribing, pasting, copied-to-clipboard, and error states.
 
 ### Changed
 
