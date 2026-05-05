@@ -236,12 +236,12 @@ This backlog comes from the first release code and feature review. Items are gro
 
 #### Harden model loading state
 
-- [ ] Make `ModelManager.load()` transactional: do not publish the new active model until the worker has successfully loaded.
-- [ ] If worker startup fails, times out, or exits early, set the model status to `error` and clear or restore the active model consistently.
-- [ ] Add explicit status fields for `loading`, `loaded`, and `error` instead of deriving health from a non-empty model string.
-- [ ] Return useful health details: active model, worker alive, last load error, last load duration, uptime.
-- [ ] Add tests for startup failure, timeout, worker crash, and failed model switch.
-- [ ] Update `packages/protocol/openapi.yaml` after response fields change.
+- [x] Make `ModelManager.load()` transactional: do not publish the new active model until the worker has successfully loaded.
+- [x] If worker startup fails, times out, or exits early, set the model status to `error` and clear or restore the active model consistently.
+- [x] Add explicit status fields for `loading`, `loaded`, and `error` instead of deriving health from a non-empty model string.
+- [x] Return useful health details: active model, worker alive, last load error, last load duration, uptime.
+- [x] Add tests for startup failure, timeout, worker crash, and failed model switch.
+- [x] Update `packages/protocol/openapi.yaml` after response fields change.
 
 Relevant files:
 - `apps/server/phonos_server/models.py`
@@ -485,9 +485,9 @@ Acceptance criteria:
 
 #### Strengthen tests around real failure modes
 
-- [ ] Add tests for model worker load failure and worker death.
-- [ ] Add tests for upload size limit and streaming upload behavior.
-- [ ] Add tests for auth on all protected endpoints.
+- [x] Add tests for model worker load failure and worker death.
+- [x] Add tests for upload size limit and streaming upload behavior.
+- [x] Add tests for auth on all protected endpoints.
 - [ ] Add OpenAPI contract checks for response shapes.
 - [ ] Add Swift unit tests where feasible for URL building, error decoding, and settings storage.
 - [ ] Add a lightweight end-to-end smoke test for the server container.
