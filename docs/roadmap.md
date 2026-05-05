@@ -259,7 +259,7 @@ Acceptance criteria:
 - [x] Make server request timeout configurable with `PHONOS_TRANSCRIBE_TIMEOUT_SECONDS`.
 - [x] Make the macOS client timeout long enough to match the server default.
 - [x] Return a distinct `504` timeout error from the server when transcription exceeds the configured limit.
-- [ ] Show a user-facing timeout message that suggests using a smaller model or increasing the timeout. *(planned: 1.2.0)*
+- [x] Show a user-facing timeout message that suggests using a smaller model or increasing the timeout. *(1.2.0)*
 - [x] Add server tests for timeout responses.
 
 Relevant files:
@@ -372,9 +372,9 @@ Acceptance criteria:
 
 - [x] Add distinct status states: idle, recording, transcribing, pasted, copied-only, and error.
 - [x] Update menu item titles while work is in progress.
-- [ ] Disable conflicting actions during recording or transcription. *(planned: 1.2.0)*
+- [x] Disable conflicting actions during recording or transcription. *(1.2.0)*
 - [ ] Add a short success/error notification or menu subtitle after each transcription.
-- [ ] Keep the last error available in the menu for troubleshooting. *(planned: 1.2.0)*
+- [x] Keep the last error available in the menu for troubleshooting. *(1.2.0)*
 
 Relevant files:
 - `apps/macos/Sources/MenuBarController.swift`
@@ -489,7 +489,7 @@ Acceptance criteria:
 - [x] Add tests for upload size limit and streaming upload behavior.
 - [x] Add tests for auth on all protected endpoints.
 - [ ] Add OpenAPI contract checks for response shapes. *(planned: 1.2.0)*
-- [ ] Add Swift unit tests where feasible for URL building, error decoding, and settings storage. *(planned: 1.2.0)*
+- [x] Add Swift unit tests where feasible for URL building, error decoding, and settings storage. *(1.2.0: KeychainStore + ServerClient)*
 - [ ] Add a lightweight end-to-end smoke test for the server container. *(planned: 1.2.0)*
 
 Relevant files:
@@ -530,8 +530,8 @@ Acceptance criteria:
 
 ### 10.1 Swift Unit Tests
 
-- [ ] Unit tests for `KeychainStore` — read, write, delete, migration from `UserDefaults`
-- [ ] Unit tests for `ServerClient` — URL construction with/without token, error decoding, timeout behavior
+- [x] Unit tests for `KeychainStore` — read, write, delete, migration from `UserDefaults`
+- [x] Unit tests for `ServerClient` — URL construction with/without token, error decoding, timeout behavior
 - [ ] Unit tests for `ModelCatalog` — verify guidance data integrity
 
 ### 10.2 E2E Smoke Test
@@ -547,9 +547,9 @@ Acceptance criteria:
 
 ### 10.4 UX Improvements
 
-- [ ] Disable record/toggle actions during active recording or transcription
-- [ ] Show last error message in menu bar for post-failure troubleshooting
-- [ ] Display a user-facing timeout message when transcription exceeds server limit
+- [x] Disable record/toggle actions during active recording or transcription
+- [x] Show last error message in menu bar for post-failure troubleshooting
+- [x] Display a user-facing timeout message when transcription exceeds server limit
 
 ### P3 — Future Capability
 
