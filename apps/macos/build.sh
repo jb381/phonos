@@ -17,14 +17,11 @@ mkdir -p "$APP_DIR/Contents/MacOS" "$APP_DIR/Contents/Resources"
 # Copy binary
 cp .build/release/Phonos "$APP_DIR/Contents/MacOS/Phonos"
 
-# Copy KeyboardShortcuts localization files into the main app bundle
-# (Bundle.module falls back to Bundle.main, so .lproj files need to be here)
-LPROJ_SRC="Packages/KeyboardShortcuts/Localization"
-if [ -d "$LPROJ_SRC" ]; then
-    for lproj in "$LPROJ_SRC"/*.lproj; do
-        [ -d "$lproj" ] && cp -R "$lproj" "$APP_DIR/Contents/Resources/"
-    done
-fi
+# Copy SPM resource bundles into the app bundle root
+# Bundle.module in SPM dependencies looks for resources at .app root
+for bundle in .build/release/*.bundle; do
+    [ -d "$bundle" ] && cp -R "$bundle" "$APP_DIR/"
+done
 
 # Fix permissions
 chmod -R a+rX "$APP_DIR"
