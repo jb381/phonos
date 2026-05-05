@@ -451,11 +451,11 @@ Acceptance criteria:
 
 #### Improve network discovery
 
-- [ ] Support interfaces beyond `en0` and `en1`.
+- [x] Support interfaces beyond `en0` and `en1`.
 - [ ] Handle non-`/24` local networks.
 - [ ] Add a Tailscale-specific discovery path or documented MagicDNS flow.
 - [ ] Show scan progress and partial results.
-- [ ] Avoid launching 254 simultaneous requests without a concurrency limit.
+- [x] Avoid launching 254 simultaneous requests without a concurrency limit.
 
 Relevant files:
 - `apps/macos/Sources/NetworkScanner.swift`

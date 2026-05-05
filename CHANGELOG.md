@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Surfaced local audio file write failures instead of uploading a silently corrupt recording.
 - Added a launch-at-login setting for the macOS app.
 - Added model guidance in Settings and first-run setup, including warnings for slower CPU-heavy models.
+- Improved network scanning to consider all active IPv4 interfaces and probe hosts in bounded batches.
 
 ### Changed
 
