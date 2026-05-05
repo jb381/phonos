@@ -74,8 +74,11 @@ struct SettingsView: View {
                     Text("Toggle Recording").tag("toggle")
                 }
 
-                KeyboardShortcuts.Recorder("Shortcut", name: .record) { _ in
-                    NotificationCenter.default.post(name: .recordShortcutChanged, object: nil)
+                HStack {
+                    Text("Shortcut")
+                    ShortcutRecorderView(name: .record) { _ in
+                        NotificationCenter.default.post(name: .recordShortcutChanged, object: nil)
+                    }
                 }
             }
         }

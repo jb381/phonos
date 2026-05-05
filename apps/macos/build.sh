@@ -17,11 +17,8 @@ mkdir -p "$APP_DIR/Contents/MacOS" "$APP_DIR/Contents/Resources"
 # Copy binary
 cp .build/release/Phonos "$APP_DIR/Contents/MacOS/Phonos"
 
-# Copy localization files from SPM resource bundles into Contents/Resources
-# Bundle.main looks for .lproj directories inside Contents/Resources
-for bundle in .build/release/*.bundle; do
-    [ -d "$bundle" ] && cp -R "$bundle"/*.lproj "$APP_DIR/Contents/Resources/" 2>/dev/null || true
-done
+# Copy SwiftPM resource bundles into the conventional app resources location.
+find .build -maxdepth 5 -path "*/release/*.bundle" -type d -exec cp -R {} "$APP_DIR/Contents/Resources/" \;
 
 # Fix permissions
 chmod -R a+rX "$APP_DIR"
