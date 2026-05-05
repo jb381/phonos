@@ -179,6 +179,14 @@ final class MenuBarController: NSObject, NSWindowDelegate, HotkeyManagerDelegate
 
     private func stopAndTranscribe() async {
         guard isRecording else { return }
+
+        let recordedURL = await recorder.getOutputURL()
+        defer {
+            if let url = recordedURL {
+                try? FileManager.default.removeItem(at: url)
+            }
+        }
+
         do {
             try await recorder.stopRecording()
         } catch {
@@ -192,17 +200,14 @@ final class MenuBarController: NSObject, NSWindowDelegate, HotkeyManagerDelegate
         updateRecordingUI(false)
         updateWorkflowStatus("Transcribing")
 
-        guard let fileURL = await recorder.getOutputURL() else {
+        guard let captureURL = recordedURL else {
             updateWorkflowStatus("Idle")
             return
-        }
-        defer {
-            try? FileManager.default.removeItem(at: fileURL)
         }
         let pasteTargetBundleID = lastPasteTargetBundleID
 
         do {
-            let result = try await ServerClient().transcribe(fileURL: fileURL)
+            let result = try await ServerClient().transcribe(fileURL: captureURL)
             lastTranscript = result.text
             await MainActor.run {
                 history.add(result.text)
