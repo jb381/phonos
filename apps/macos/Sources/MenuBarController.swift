@@ -11,7 +11,13 @@ final class MenuBarController: NSObject, NSWindowDelegate, HotkeyManagerDelegate
     private let history = TranscriptHistoryStore.shared
     private let recentMenu = NSMenu()
     private let workflowStatusItem = NSMenuItem(title: "Status: Idle", action: nil, keyEquivalent: "")
+    private let lastErrorItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
     private var lastPasteTargetBundleID: String?
+    private var isProcessing = false
+
+    private var recordItem: NSMenuItem!
+    private var pasteItem: NSMenuItem!
+    private var historyItem: NSMenuItem!
 
     override init() {
         super.init()
@@ -70,18 +76,23 @@ final class MenuBarController: NSObject, NSWindowDelegate, HotkeyManagerDelegate
 
         workflowStatusItem.isEnabled = false
         menu.addItem(workflowStatusItem)
+
+        lastErrorItem.isEnabled = false
+        lastErrorItem.isHidden = true
+        menu.addItem(lastErrorItem)
+
         menu.addItem(.separator())
 
-        let recordItem = NSMenuItem(title: "Start Recording", action: #selector(toggleRecording), keyEquivalent: "r")
+        recordItem = NSMenuItem(title: "Start Recording", action: #selector(toggleRecording), keyEquivalent: "r")
         recordItem.target = self
         menu.addItem(recordItem)
 
-        let pasteItem = NSMenuItem(title: "Paste Last Transcript", action: #selector(pasteLast), keyEquivalent: "v")
+        pasteItem = NSMenuItem(title: "Paste Last Transcript", action: #selector(pasteLast), keyEquivalent: "v")
         pasteItem.keyEquivalentModifierMask = [.command, .shift]
         pasteItem.target = self
         menu.addItem(pasteItem)
 
-        let historyItem = NSMenuItem(title: "History...", action: #selector(openHistory), keyEquivalent: "h")
+        historyItem = NSMenuItem(title: "History...", action: #selector(openHistory), keyEquivalent: "h")
         historyItem.target = self
         menu.addItem(historyItem)
 
@@ -237,6 +248,12 @@ final class MenuBarController: NSObject, NSWindowDelegate, HotkeyManagerDelegate
             }
         } catch {
             updateWorkflowStatus("Error")
+            let message = error.localizedDescription
+            if message.contains("Timed out") {
+                showLastError("Timed out. Try a smaller model (Settings → Model) or increase server timeout.")
+            } else {
+                showLastError(message)
+            }
             showError(error)
         }
     }
@@ -301,10 +318,14 @@ final class MenuBarController: NSObject, NSWindowDelegate, HotkeyManagerDelegate
     }
 
     private func showError(_ error: Error) {
+        let message = error.localizedDescription
+        Task { @MainActor in
+            showLastError(message)
+        }
         DispatchQueue.main.async {
             let alert = NSAlert()
             alert.messageText = "Error"
-            alert.informativeText = error.localizedDescription
+            alert.informativeText = message
             alert.alertStyle = .warning
             alert.addButton(withTitle: "OK")
             alert.runModal()
@@ -314,6 +335,33 @@ final class MenuBarController: NSObject, NSWindowDelegate, HotkeyManagerDelegate
     @MainActor
     private func updateWorkflowStatus(_ status: String) {
         workflowStatusItem.title = "Status: \(status)"
+        let busy = (status == "Recording" || status == "Transcribing" || status == "Pasting")
+        if busy != isProcessing {
+            isProcessing = busy
+            setActionsEnabled(!busy)
+        }
+        if status == "Idle" || status == "Pasted" || status == "Copied to Clipboard" {
+            hideLastError()
+        }
+    }
+
+    @MainActor
+    private func setActionsEnabled(_ enabled: Bool) {
+        recordItem?.isEnabled = enabled
+        pasteItem?.isEnabled = enabled
+        historyItem?.isEnabled = enabled
+    }
+
+    @MainActor
+    private func showLastError(_ message: String) {
+        lastErrorItem.title = "Last Error: \(message)"
+        lastErrorItem.isHidden = false
+    }
+
+    @MainActor
+    private func hideLastError() {
+        lastErrorItem.title = ""
+        lastErrorItem.isHidden = true
     }
 
     private func showAccessibilityAlert() {

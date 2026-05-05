@@ -66,19 +66,30 @@ enum ServerError: LocalizedError {
 }
 
 actor ServerClient {
-    private let settings = SettingsManager.shared
+    private let baseURL: String
+    private let authToken: () -> String
     private let session: URLSession
 
     init() {
+        let settings = SettingsManager.shared
+        self.baseURL = settings.baseURL
+        self.authToken = { settings.authToken }
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 650
         config.timeoutIntervalForResource = 650
         self.session = URLSession(configuration: config)
     }
 
+    init(baseURL: String, authToken: @escaping () -> String, session: URLSession) {
+        self.baseURL = baseURL.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        self.authToken = authToken
+        self.session = session
+    }
+
     private func authHeader(for request: inout URLRequest) {
-        if !settings.authToken.isEmpty {
-            request.setValue("Bearer \(settings.authToken)", forHTTPHeaderField: "Authorization")
+        let token = authToken()
+        if !token.isEmpty {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
     }
 
@@ -99,7 +110,7 @@ actor ServerClient {
     }
 
     private func request(_ path: String, method: String = "GET", body: Data? = nil) async throws -> Data {
-        guard let url = URL(string: "\(settings.baseURL)\(path)") else {
+        guard let url = URL(string: "\(baseURL)\(path)") else {
             throw ServerError.connectionFailed("Invalid URL")
         }
 
@@ -140,7 +151,7 @@ actor ServerClient {
     }
 
     func transcribe(fileURL: URL) async throws -> TranscriptionResponse {
-        guard let url = URL(string: "\(settings.baseURL)/transcribe") else {
+        guard let url = URL(string: "\(baseURL)/transcribe") else {
             throw ServerError.connectionFailed("Invalid URL")
         }
 

@@ -38,6 +38,10 @@ jobs:
         with:
           fetch-depth: 0
 
+      - run: swift test
+        env:
+          CI: "true"
+
       - run: ./build.sh
 
       - uses: actions/upload-artifact@v4

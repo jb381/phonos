@@ -15,6 +15,11 @@ let package = Package(
             name: "Phonos",
             dependencies: ["KeyboardShortcuts"],
             path: "Sources"
+        ),
+        .testTarget(
+            name: "PhonosTests",
+            dependencies: ["Phonos"],
+            path: "Tests"
         )
     ]
 )
