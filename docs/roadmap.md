@@ -329,11 +329,12 @@ Acceptance criteria:
 
 #### Add proper first-run setup
 
-- [ ] Add a first-run window or checklist covering microphone permission, accessibility permission, server URL, auth token, connection test, and model choice.
-- [ ] Detect missing microphone permission before the first recording attempt.
-- [ ] Detect missing Accessibility permission before paste automation fails.
-- [ ] Add direct buttons to open the relevant macOS privacy settings panes.
-- [ ] Store first-run completion state, but allow reopening setup from the menu.
+- [x] Add a first-run window or checklist covering microphone permission, accessibility permission, server URL, auth token, and connection test.
+- [x] Detect missing microphone permission before the first recording attempt.
+- [x] Detect missing Accessibility permission before paste automation fails.
+- [x] Add direct buttons to open the relevant macOS privacy settings panes.
+- [x] Store first-run completion state, but allow reopening setup from the menu.
+- [ ] Add model choice to the first-run setup.
 
 Relevant files:
 - `apps/macos/Sources/PhonosApp.swift`

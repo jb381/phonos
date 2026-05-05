@@ -12,6 +12,7 @@ final class SettingsManager: ObservableObject {
     @AppStorage("serverURL") var serverURL = "http://localhost:8765"
     @AppStorage("recordingMode") var recordingMode = "hold"
     @AppStorage("selectedModel") var selectedModel = "base.en"
+    @AppStorage("firstRunCompleted") var firstRunCompleted = false
     @Published var authToken = "" {
         didSet {
             do {

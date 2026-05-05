@@ -17,6 +17,11 @@ final class MenuBarController: NSObject, NSWindowDelegate, HotkeyManagerDelegate
         startTrackingPasteTarget()
         setupMenuBar()
         setupHotkey()
+        if !settings.firstRunCompleted {
+            DispatchQueue.main.async { [weak self] in
+                self?.openSetup()
+            }
+        }
     }
 
     deinit {
@@ -85,6 +90,10 @@ final class MenuBarController: NSObject, NSWindowDelegate, HotkeyManagerDelegate
         let settingsItem = NSMenuItem(title: "Settings...", action: #selector(openSettings), keyEquivalent: ",")
         settingsItem.target = self
         menu.addItem(settingsItem)
+
+        let setupItem = NSMenuItem(title: "Setup...", action: #selector(openSetup), keyEquivalent: "")
+        setupItem.target = self
+        menu.addItem(setupItem)
 
         menu.addItem(.separator())
 
@@ -286,6 +295,7 @@ final class MenuBarController: NSObject, NSWindowDelegate, HotkeyManagerDelegate
 
     private var settingsWindow: NSWindow?
     private var historyWindow: NSWindow?
+    private var setupWindow: NSWindow?
 
     private func showUtilityWindow(_ window: NSWindow) {
         NSApp.setActivationPolicy(.regular)
@@ -295,7 +305,8 @@ final class MenuBarController: NSObject, NSWindowDelegate, HotkeyManagerDelegate
 
     private func restoreAccessoryPolicyIfNeeded() {
         guard settingsWindow?.isVisible != true,
-              historyWindow?.isVisible != true
+              historyWindow?.isVisible != true,
+              setupWindow?.isVisible != true
         else { return }
 
         NSApp.setActivationPolicy(.accessory)
@@ -306,6 +317,8 @@ final class MenuBarController: NSObject, NSWindowDelegate, HotkeyManagerDelegate
             settingsWindow = nil
         } else if notification.object as? NSWindow === historyWindow {
             historyWindow = nil
+        } else if notification.object as? NSWindow === setupWindow {
+            setupWindow = nil
         }
 
         restoreAccessoryPolicyIfNeeded()
@@ -377,6 +390,29 @@ final class MenuBarController: NSObject, NSWindowDelegate, HotkeyManagerDelegate
         window.delegate = self
         showUtilityWindow(window)
         settingsWindow = window
+    }
+
+    @objc private func openSetup() {
+        if let window = setupWindow {
+            showUtilityWindow(window)
+            return
+        }
+
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 460, height: 430),
+            styleMask: [.titled, .closable, .miniaturizable],
+            backing: .buffered,
+            defer: false
+        )
+        window.title = "Phonos Setup"
+        window.center()
+        window.isReleasedWhenClosed = false
+        window.delegate = self
+        window.contentView = NSHostingView(rootView: FirstRunView { [weak window] in
+            window?.close()
+        })
+        showUtilityWindow(window)
+        setupWindow = window
     }
 
     @objc private func quitApp() {

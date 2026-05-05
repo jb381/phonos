@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Limited server audio upload size and return `413` when an audio file exceeds the configured limit.
 - Removed temporary macOS recording files after each transcription flow completes.
 - Moved macOS auth token storage from `UserDefaults` to Keychain, with migration for existing saved tokens.
+- Added a first-run setup window for microphone permission, Accessibility permission, server settings, and connection checks.
 
 ### Changed
 
