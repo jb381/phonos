@@ -149,6 +149,18 @@ components:
         last_load_seconds:
           type: number
           description: Seconds spent loading the current or last attempted model
+        uptime_seconds:
+          type: number
+          description: Server process uptime in seconds
+        request_count:
+          type: integer
+          description: Number of HTTP requests handled by this server process
+        transcription_count:
+          type: integer
+          description: Number of successful transcriptions handled by this model manager
+        last_processing_seconds:
+          type: number
+          description: Processing time for the last successful transcription
         device:
           type: string
         compute_type:

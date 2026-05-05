@@ -469,9 +469,9 @@ Acceptance criteria:
 
 #### Add server observability
 
-- [ ] Track uptime, request count, transcription count, last error, active/busy state, current model, and last processing duration.
-- [ ] Add `/metrics` or an expanded `/health` response.
-- [ ] Ensure auth-sensitive values are never logged or returned.
+- [x] Track uptime, request count, transcription count, last error, current model, and last processing duration.
+- [x] Add `/metrics` or an expanded `/health` response.
+- [x] Ensure auth-sensitive values are never logged or returned.
 - [ ] Add structured logs for model load, transcription start/end, timeout, and worker restart.
 
 Relevant files:

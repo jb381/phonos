@@ -11,6 +11,10 @@ class TestHealth:
         assert "worker_alive" in data
         assert "last_error" in data
         assert "last_load_seconds" in data
+        assert "uptime_seconds" in data
+        assert "request_count" in data
+        assert "transcription_count" in data
+        assert "last_processing_seconds" in data
         assert "device" in data
         assert "compute_type" in data
 

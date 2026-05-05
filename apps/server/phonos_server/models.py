@@ -67,6 +67,9 @@ class ModelManager:
         self._status: str = "loading"
         self._last_error: str = ""
         self._last_load_seconds: float = 0
+        self._started_at = time.time()
+        self._transcription_count = 0
+        self._last_processing_seconds: float = 0
         self._process: mp.Process | None = None
         self._cmd_queue: mp.Queue | None = None
         self._result_queue: mp.Queue | None = None
@@ -92,6 +95,22 @@ class ModelManager:
     @property
     def worker_alive(self) -> bool:
         return self._process is not None and self._process.is_alive()
+
+    @property
+    def uptime_seconds(self) -> float:
+        return round(time.time() - self._started_at, 2)
+
+    @property
+    def transcription_count(self) -> int:
+        return self._transcription_count
+
+    @property
+    def last_processing_seconds(self) -> float:
+        return self._last_processing_seconds
+
+    def record_transcription(self, processing_seconds: float):
+        self._transcription_count += 1
+        self._last_processing_seconds = processing_seconds
 
     def load(self, model_name: str):
         with self._lock:

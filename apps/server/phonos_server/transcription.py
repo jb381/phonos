@@ -64,6 +64,7 @@ async def transcribe_audio(
         start = time.time()
         result = manager.transcribe(tmp_path)
         result["processing_seconds"] = round(time.time() - start, 2)
+        manager.record_transcription(result["processing_seconds"])
         logger.info(
             "Transcription complete: model=%s language=%s duration_seconds=%s "
             "processing_seconds=%s text=%r",

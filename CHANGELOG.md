@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added a launch-at-login setting for the macOS app.
 - Added model guidance in Settings and first-run setup, including warnings for slower CPU-heavy models.
 - Improved network scanning to consider all active IPv4 interfaces and probe hosts in bounded batches.
+- Expanded server health output with uptime, request count, transcription count, and last processing duration.
 
 ### Changed
 

@@ -17,6 +17,7 @@ class SetModelRequest(BaseModel):
 
 
 manager: ModelManager | None = None
+request_count = 0
 
 
 @asynccontextmanager
@@ -32,6 +33,13 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Phonos", version="0.1.0", lifespan=lifespan)
 
 
+@app.middleware("http")
+async def count_requests(request, call_next):
+    global request_count
+    request_count += 1
+    return await call_next(request)
+
+
 @app.get("/health")
 def health():
     return {
@@ -40,6 +48,10 @@ def health():
         "worker_alive": manager.worker_alive,
         "last_error": manager.last_error,
         "last_load_seconds": manager.last_load_seconds,
+        "uptime_seconds": manager.uptime_seconds,
+        "request_count": request_count,
+        "transcription_count": manager.transcription_count,
+        "last_processing_seconds": manager.last_processing_seconds,
         "device": get_settings().device,
         "compute_type": get_settings().compute_type,
     }
