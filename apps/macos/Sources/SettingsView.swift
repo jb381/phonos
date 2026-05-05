@@ -23,6 +23,12 @@ struct SettingsView: View {
 
                 SecureField("Auth Token", text: $settings.authToken)
 
+                if let error = settings.authTokenStorageError {
+                    Text(error)
+                        .font(.caption)
+                        .foregroundColor(.red)
+                }
+
                 HStack {
                     Button("Check Connection") { checkHealth() }
                     Button("Scan Network") { startScan() }

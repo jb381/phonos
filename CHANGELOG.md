@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Aligned macOS and server transcription timeouts so the client no longer gives up after 120 seconds while the server continues processing.
 - Limited server audio upload size and return `413` when an audio file exceeds the configured limit.
 - Removed temporary macOS recording files after each transcription flow completes.
+- Moved macOS auth token storage from `UserDefaults` to Keychain, with migration for existing saved tokens.
 
 ### Changed
 

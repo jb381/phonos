@@ -312,11 +312,11 @@ Acceptance criteria:
 
 #### Store auth token in Keychain
 
-- [ ] Replace `@AppStorage("authToken")` with a Keychain-backed storage helper.
-- [ ] Migrate any existing token from `UserDefaults` to Keychain on first launch after upgrade.
-- [ ] Clear the old `UserDefaults` token after successful migration.
-- [ ] Keep SwiftUI settings binding behavior simple and predictable.
-- [ ] Add error handling for Keychain read/write failures.
+- [x] Replace `@AppStorage("authToken")` with a Keychain-backed storage helper.
+- [x] Migrate any existing token from `UserDefaults` to Keychain on first launch after upgrade.
+- [x] Clear the old `UserDefaults` token after successful migration.
+- [x] Keep SwiftUI settings binding behavior simple and predictable.
+- [x] Add error handling for Keychain read/write failures.
 
 Relevant files:
 - `apps/macos/Sources/SettingsManager.swift`
