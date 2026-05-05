@@ -32,6 +32,7 @@ PHONOS_MODELS=tiny.en,base.en,small.en,medium.en
 PHONOS_DEVICE=cpu
 PHONOS_COMPUTE_TYPE=int8
 PHONOS_TRANSCRIBE_TIMEOUT_SECONDS=600
+PHONOS_MAX_UPLOAD_MB=100
 ```
 
 ### 3. Start the server

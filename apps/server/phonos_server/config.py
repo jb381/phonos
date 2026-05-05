@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     compute_type: str = "int8"
     vad_filter: bool = True
     transcribe_timeout_seconds: int = 600
+    max_upload_mb: int = 100
 
     model_config = {"env_prefix": "PHONOS_", "env_file": ".env"}
 

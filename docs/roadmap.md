@@ -213,6 +213,7 @@ PHONOS_DEVICE=cpu            # Device: cpu or cuda
 PHONOS_COMPUTE_TYPE=int8     # Compute type for faster-whisper
 PHONOS_VAD_FILTER=true       # Enable voice activity detection
 PHONOS_TRANSCRIBE_TIMEOUT_SECONDS=600  # Per-request transcription timeout
+PHONOS_MAX_UPLOAD_MB=100     # Maximum uploaded audio file size
 ```
 
 ### Mac Client Settings
@@ -273,12 +274,12 @@ Acceptance criteria:
 
 #### Limit upload size and stream audio safely
 
-- [ ] Add `PHONOS_MAX_UPLOAD_MB` with a conservative default.
-- [ ] Reject oversized requests with `413 Payload Too Large`.
-- [ ] Stream uploads to a temp file instead of reading the whole file into memory.
-- [ ] Validate extension and empty file behavior after streaming.
-- [ ] Add server tests for empty files, valid files, unsupported files, and oversized uploads.
-- [ ] Document upload limits in README, deployment docs, and OpenAPI.
+- [x] Add `PHONOS_MAX_UPLOAD_MB` with a conservative default.
+- [x] Reject oversized requests with `413 Payload Too Large`.
+- [x] Stream uploads to a temp file instead of reading the whole file into memory.
+- [x] Validate extension and empty file behavior after streaming.
+- [x] Add server tests for empty files, valid files, unsupported files, and oversized uploads.
+- [x] Document upload limits in README, deployment docs, and OpenAPI.
 
 Relevant files:
 - `apps/server/phonos_server/transcription.py`

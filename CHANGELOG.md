@@ -14,12 +14,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Made server model loading transactional so `/health` and `/models/active` no longer report a model as loaded when worker startup failed.
 - Added explicit model worker health, last load error, and model load timing to health responses.
 - Aligned macOS and server transcription timeouts so the client no longer gives up after 120 seconds while the server continues processing.
+- Limited server audio upload size and return `413` when an audio file exceeds the configured limit.
 
 ### Changed
 
 - Added a post-1.0 implementation backlog to the roadmap with prioritized reliability, security, UX, observability, testing, and release-polish tasks.
 - Corrected roadmap items that were marked complete but are still future work.
 - Added `PHONOS_TRANSCRIBE_TIMEOUT_SECONDS` for configurable server-side transcription timeouts and return `504` when a transcription exceeds it.
+- Added `PHONOS_MAX_UPLOAD_MB` and stream incoming audio uploads to disk instead of reading full files into memory.
 
 ## [1.0.0] - 2026-05-05
 

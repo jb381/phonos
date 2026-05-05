@@ -12,6 +12,7 @@ from phonos_server.models import ModelManager
 logger = logging.getLogger(__name__)
 
 ALLOWED_EXTENSIONS = {".wav", ".mp3", ".m4a", ".flac", ".ogg", ".webm"}
+UPLOAD_CHUNK_SIZE = 1024 * 1024
 
 
 def allowed_file(filename: str) -> bool:
@@ -30,22 +31,34 @@ async def transcribe_audio(
             detail=f"Unsupported file type. Allowed: {', '.join(ALLOWED_EXTENSIONS)}",
         )
 
-    content = await file.read()
-    if len(content) == 0:
+    max_upload_bytes = settings.max_upload_mb * 1024 * 1024
+    suffix = os.path.splitext(file.filename)[1] or ".wav"
+    with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
+        tmp_path = tmp.name
+        size_bytes = 0
+        while chunk := await file.read(UPLOAD_CHUNK_SIZE):
+            size_bytes += len(chunk)
+            if size_bytes > max_upload_bytes:
+                with contextlib.suppress(OSError):
+                    os.unlink(tmp_path)
+                raise HTTPException(
+                    status_code=413,
+                    detail=f"Audio file exceeds {settings.max_upload_mb} MB upload limit",
+                )
+            tmp.write(chunk)
+
+    if size_bytes == 0:
+        with contextlib.suppress(OSError):
+            os.unlink(tmp_path)
         raise HTTPException(status_code=400, detail="Empty audio file")
 
     logger.info(
         "Received transcription request: filename=%s content_type=%s size_bytes=%d model=%s",
         file.filename,
         file.content_type,
-        len(content),
+        size_bytes,
         manager.active_model,
     )
-
-    suffix = os.path.splitext(file.filename)[1] or ".wav"
-    with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
-        tmp.write(content)
-        tmp_path = tmp.name
 
     try:
         start = time.time()

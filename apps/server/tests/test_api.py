@@ -140,6 +140,24 @@ class TestTranscribe:
         )
         assert response.status_code == 400
 
+    def test_transcribe_oversized_file(
+        self, client_with_auth, auth_headers, sample_wav, monkeypatch
+    ):
+        from phonos_server.config import get_settings
+
+        monkeypatch.setenv("PHONOS_MAX_UPLOAD_MB", "0")
+        get_settings.cache_clear()
+
+        response = client_with_auth.post(
+            "/transcribe",
+            files={"file": ("test.wav", sample_wav, "audio/wav")},
+            headers=auth_headers,
+        )
+        get_settings.cache_clear()
+
+        assert response.status_code == 413
+        assert "upload limit" in response.json()["detail"]
+
     def test_transcribe_timeout(self, client_with_auth, auth_headers, sample_wav):
         import phonos_server.main as main_mod
 
