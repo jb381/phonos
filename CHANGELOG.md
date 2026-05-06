@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1] - 2026-05-06
+
+### Fixed
+
+- Replaced `NSAllowsLocalNetworking` with `NSAllowsArbitraryLoads` in the macOS ATS configuration. The local-networking exception only covers RFC 1918 private ranges and .local domains, which blocks HTTP connections to Tailscale IPs (100.x.x.x) and some LAN setups.
+
+---
+
 ## [1.2.0] - 2026-05-06
 
 **The Test Release**

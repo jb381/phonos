@@ -54,7 +54,7 @@ cat > "$APP_DIR/Contents/Info.plist" << PLIST
     <string>Phonos needs Accessibility access for paste automation.</string>
     <key>NSAppTransportSecurity</key>
     <dict>
-        <key>NSAllowsLocalNetworking</key>
+        <key>NSAllowsArbitraryLoads</key>
         <true/>
     </dict>
     <key>NSMicrophoneUsageDescription</key>
