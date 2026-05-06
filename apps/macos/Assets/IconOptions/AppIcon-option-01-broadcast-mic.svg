@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+  <title id="title">Phonos icon option 1</title>
+  <desc id="desc">A refined orange microphone icon with speaking waves.</desc>
+  <defs>
+    <linearGradient id="tile" x1="158" y1="88" x2="866" y2="940" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFBE55"/>
+      <stop offset="0.5" stop-color="#FF7A1A"/>
+      <stop offset="1" stop-color="#D83D13"/>
+    </linearGradient>
+    <radialGradient id="light" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(326 210) rotate(52) scale(620 488)">
+      <stop offset="0" stop-color="#FFE9B9" stop-opacity="0.72"/>
+      <stop offset="0.48" stop-color="#FFB04A" stop-opacity="0.24"/>
+      <stop offset="1" stop-color="#D83D13" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="mark" x1="281" y1="185" x2="757" y2="804" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFF9EE"/>
+      <stop offset="1" stop-color="#FFE3BD"/>
+    </linearGradient>
+    <linearGradient id="inner" x1="407" y1="262" x2="525" y2="580" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FF8A1E"/>
+      <stop offset="1" stop-color="#DC4214"/>
+    </linearGradient>
+    <linearGradient id="rim" x1="220" y1="42" x2="818" y2="984" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.34"/>
+      <stop offset="0.5" stop-color="#FFFFFF" stop-opacity="0.07"/>
+      <stop offset="1" stop-color="#7E210A" stop-opacity="0.3"/>
+    </linearGradient>
+    <filter id="shadow" x="-18%" y="-18%" width="136%" height="142%" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="30" stdDeviation="27" flood-color="#7E210A" flood-opacity="0.36"/>
+    </filter>
+  </defs>
+  <rect width="1024" height="1024" rx="226" fill="url(#tile)"/>
+  <rect width="1024" height="1024" rx="226" fill="url(#light)"/>
+  <path d="M155 797C268 864 414 894 560 872C702 851 823 775 895 653C860 835 704 964 512 964C371 964 248 916 162 836C151 825 140 788 155 797Z" fill="#84220A" opacity="0.17"/>
+  <g filter="url(#shadow)">
+    <path d="M457 166C544 166 614 236 614 323V506C614 593 544 663 457 663C370 663 300 593 300 506V323C300 236 370 166 457 166Z" fill="url(#mark)"/>
+    <rect x="382" y="257" width="150" height="315" rx="75" fill="url(#inner)"/>
+    <path d="M343 462C359 462 371 475 371 491V515C371 562 409 600 457 600C505 600 543 562 543 515V491C543 475 555 462 571 462C587 462 600 475 600 491V515C600 582 550 639 486 650V726H562C578 726 591 739 591 755C591 771 578 784 562 784H352C336 784 323 771 323 755C323 739 336 726 352 726H428V650C364 639 314 582 314 515V491C314 475 327 462 343 462Z" fill="url(#mark)"/>
+    <path d="M672 314C717 349 746 403 746 464C746 525 717 579 672 614" fill="none" stroke="url(#mark)" stroke-width="58" stroke-linecap="round"/>
+    <path d="M760 235C826 291 867 373 867 464C867 555 826 637 760 693" fill="none" stroke="url(#mark)" stroke-width="58" stroke-linecap="round" opacity="0.9"/>
+    <circle cx="657" cy="464" r="28" fill="url(#mark)"/>
+  </g>
+  <path d="M204 207C258 139 346 98 477 79C399 104 334 143 286 195C239 245 208 304 191 373C178 321 181 239 204 207Z" fill="#FFFFFF" opacity="0.14"/>
+  <rect x="23" y="23" width="978" height="978" rx="204" fill="none" stroke="url(#rim)" stroke-width="46"/>
+</svg>

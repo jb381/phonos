@@ -20,6 +20,11 @@ cp .build/release/Phonos "$APP_DIR/Contents/MacOS/Phonos"
 # Copy SwiftPM resource bundles into the conventional app resources location.
 find .build -maxdepth 5 -path "*/release/*.bundle" -type d -exec cp -R {} "$APP_DIR/Contents/Resources/" \;
 
+# Copy app icon when the generated macOS icon asset is available.
+if [ -f "Assets/AppIcon.icns" ]; then
+    cp "Assets/AppIcon.icns" "$APP_DIR/Contents/Resources/AppIcon.icns"
+fi
+
 # Fix permissions
 chmod -R a+rX "$APP_DIR"
 
@@ -35,6 +40,8 @@ cat > "$APP_DIR/Contents/Info.plist" << PLIST
     <string>dev.phonos.app</string>
     <key>CFBundleName</key>
     <string>Phonos</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
     <key>CFBundleShortVersionString</key>
     <string>${VERSION}</string>
     <key>CFBundleVersion</key>
