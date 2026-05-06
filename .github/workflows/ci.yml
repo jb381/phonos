@@ -33,54 +33,13 @@ jobs:
         working-directory: apps/server
     steps:
       - uses: actions/checkout@v6
+
+      - uses: astral-sh/setup-uv@v8.1.0
         with:
-          fetch-depth: 0
+          python-version: "3.11"
 
-      - run: docker compose up -d --wait
-        env:
-          PHONOS_MODEL: tiny.en
-          PHONOS_AUTH_TOKEN: ""
-        timeout-minutes: 10
-
-      - name: Run E2E smoke tests
-        run: |
-          apt-get update && apt-get install -y --no-install-recommends python3 python3-pip
-          pip install httpx
-          python3 -c "
-          import httpx, time
-          r = httpx.get('http://localhost:8765/health', timeout=10)
-          assert r.status_code == 200
-          assert r.json()['status'] == 'ok'
-          print('Health OK:', r.json())
-
-          import io, struct
-          buf = io.BytesIO()
-          sr = 16000; ns = sr
-          buf.write(b'RIFF')
-          buf.write(struct.pack('<I', 36 + ns * 2))
-          buf.write(b'WAVE')
-          buf.write(b'fmt ')
-          buf.write(struct.pack('<I', 16))
-          buf.write(struct.pack('<HH', 1, 1))
-          buf.write(struct.pack('<I', sr))
-          buf.write(struct.pack('<I', sr * 2))
-          buf.write(struct.pack('<HH', 2, 16))
-          buf.write(b'data')
-          buf.write(struct.pack('<I', ns * 2))
-          buf.write(b'\x00\x00' * ns)
-          buf.seek(0)
-
-          r = httpx.post('http://localhost:8765/transcribe', files={'file': ('test.wav', buf, 'audio/wav')}, timeout=120)
-          assert r.status_code == 200
-          data = r.json()
-          assert 'text' in data
-          assert isinstance(data['text'], str)
-          assert data['model'] == 'tiny.en'
-          print('Transcription OK:', data)
-          "
-
-      - run: docker compose down --volumes
-        if: always()
+      - run: uv run pytest -m e2e
+        timeout-minutes: 15
 
   swift:
     runs-on: macos-15

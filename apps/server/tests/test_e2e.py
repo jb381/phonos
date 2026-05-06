@@ -31,7 +31,7 @@ def docker_compose_up():
     env["PHONOS_AUTH_TOKEN"] = ""
 
     subprocess.run(
-        ["docker", "compose", "up", "-d", "--wait"],
+        ["docker", "compose", "up", "-d"],
         cwd=server_dir,
         env=env,
         check=True,

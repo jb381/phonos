@@ -18,10 +18,11 @@ services:
       - phonos_models:/root/.cache/huggingface
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "python", "-c", "import os,urllib.request; urllib.request.urlopen(f'http://localhost:{os.environ[\"PHONOS_PORT\"]}/health')"]
-      interval: 30s
+      test: ["CMD", "python", "-c", "import os,urllib.request; urllib.request.urlopen(f'http://localhost:{os.environ[\"PHONOS_PORT\"]}/health', timeout=8)"]
+      interval: 15s
       timeout: 10s
-      retries: 3
+      retries: 10
+      start_period: 180s
 
 volumes:
   phonos_models:
