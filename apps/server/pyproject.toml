@@ -15,11 +15,15 @@ dependencies = [
 dev = [
     "httpx>=0.26.0",
     "pytest>=8.0.0",
+    "pyyaml>=6.0.3",
     "ruff>=0.11.0",
 ]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = [
+    "e2e: end-to-end test that requires a running Docker Compose server",
+]
 
 [tool.uv]
 package = true

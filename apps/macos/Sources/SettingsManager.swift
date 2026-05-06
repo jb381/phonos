@@ -45,6 +45,10 @@ final class SettingsManager: ObservableObject {
     }
 
     var baseURL: String {
-        serverURL.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        var url = serverURL.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        if !url.lowercased().hasPrefix("http://") && !url.lowercased().hasPrefix("https://") {
+            url = "http://" + url
+        }
+        return url
     }
 }

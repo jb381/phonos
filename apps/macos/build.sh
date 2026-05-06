@@ -52,6 +52,11 @@ cat > "$APP_DIR/Contents/Info.plist" << PLIST
     <true/>
     <key>NSAppleEventsUsageDescription</key>
     <string>Phonos needs Accessibility access for paste automation.</string>
+    <key>NSAppTransportSecurity</key>
+    <dict>
+        <key>NSAllowsLocalNetworking</key>
+        <true/>
+    </dict>
     <key>NSMicrophoneUsageDescription</key>
     <string>Phonos needs microphone access to capture audio for transcription.</string>
 </dict>

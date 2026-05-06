@@ -11,20 +11,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- macOS app icon for the menu bar and dock.
 - Swift unit tests for KeychainStore (read, write, delete, migration from UserDefaults).
 - Swift unit tests for ServerClient (URL building, auth headers, error decoding, timeout handling).
+- Swift unit tests for ModelCatalog (guidance data integrity, model descriptions, large-model warnings).
 - OpenAPI contract validation tests to keep the spec and server responses aligned.
 - End-to-end smoke test with a Docker server container and a real WAV file.
+- E2E test job in CI alongside existing server and client tests.
+- Swift tests now run in CI.
 
 ### Changed
 
 - Disabled conflicting menu actions during recording and transcription to prevent double-triggers.
 - Kept the last error message visible in the menu bar for troubleshooting after a failure.
 - Showed a user-facing timeout suggestion when transcriptions exceed the server limit.
+- Server URL now auto-prepends `http://` when no scheme is provided, making it easier to enter IP addresses.
+- Settings view now shows connection error text inline instead of only in a tooltip.
 
 ### Fixed
 
 - Ensured temp recording cleanup runs even when `stopRecording()` throws a write error.
+- Added App Transport Security exception (`NSAllowsLocalNetworking`) so HTTP connections to LAN/Tailscale servers work without requiring HTTPS.
 
 ---
 

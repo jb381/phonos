@@ -488,9 +488,9 @@ Acceptance criteria:
 - [x] Add tests for model worker load failure and worker death.
 - [x] Add tests for upload size limit and streaming upload behavior.
 - [x] Add tests for auth on all protected endpoints.
-- [ ] Add OpenAPI contract checks for response shapes. *(planned: 1.2.0)*
+- [x] Add OpenAPI contract checks for response shapes. *(1.2.0)*
 - [x] Add Swift unit tests where feasible for URL building, error decoding, and settings storage. *(1.2.0: KeychainStore + ServerClient)*
-- [ ] Add a lightweight end-to-end smoke test for the server container. *(planned: 1.2.0)*
+- [x] Add a lightweight end-to-end smoke test for the server container. *(1.2.0)*
 
 Relevant files:
 - `apps/server/tests/test_api.py`
@@ -532,18 +532,18 @@ Acceptance criteria:
 
 - [x] Unit tests for `KeychainStore` — read, write, delete, migration from `UserDefaults`
 - [x] Unit tests for `ServerClient` — URL construction with/without token, error decoding, timeout behavior
-- [ ] Unit tests for `ModelCatalog` — verify guidance data integrity
+- [x] Unit tests for `ModelCatalog` — verify guidance data integrity
 
 ### 10.2 E2E Smoke Test
 
-- [ ] Docker Compose server + real WAV → assert non-empty transcription
-- [ ] Run in CI alongside existing server tests
-- [ ] Docs: `apps/server/tests/README.md` if needed
+- [x] Docker Compose server + real WAV → assert non-empty transcription
+- [x] Run in CI alongside existing server tests
+- [x] Docs: `apps/server/tests/test_e2e.py` with `pytest.mark.e2e`
 
 ### 10.3 OpenAPI Contract Validation
 
-- [ ] Verify server response shapes match `packages/protocol/openapi.yaml`
-- [ ] Catch drift between spec and implementation in CI
+- [x] Verify server response shapes match `packages/protocol/openapi.yaml`
+- [x] Catch drift between spec and implementation in CI
 
 ### 10.4 UX Improvements
 

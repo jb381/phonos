@@ -19,8 +19,14 @@ struct SettingsView: View {
                     TextField("Server URL", text: $settings.serverURL)
                     Circle()
                         .fill(statusColor)
-                        .frame(width: 7, height: 7)
-                        .help(serverStatus)
+                        .frame(width: 8, height: 8)
+                }
+
+                if !serverStatus.isEmpty && serverStatus.lowercased() != "ok" && !serverStatus.lowercased().hasPrefix("model:") {
+                    Text(serverStatus)
+                        .font(.caption)
+                        .foregroundColor(statusColor)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
 
                 SecureField("Auth Token", text: $settings.authToken)
