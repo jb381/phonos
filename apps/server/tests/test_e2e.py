@@ -11,8 +11,8 @@ import os
 import struct
 import subprocess
 import time
-import urllib.request
 import urllib.error
+import urllib.request
 
 import pytest
 

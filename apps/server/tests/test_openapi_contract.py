@@ -9,9 +9,7 @@ real Whisper worker.
 
 from pathlib import Path
 
-import pytest
 import yaml
-
 
 PROTOCOL_DIR = Path(__file__).resolve().parents[3] / "packages" / "protocol"
 SPEC_PATH = PROTOCOL_DIR / "openapi.yaml"
