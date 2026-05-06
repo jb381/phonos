@@ -12,6 +12,7 @@ venv/
 *.xcworkspace/xcuserdata/
 DerivedData/
 *.app
+*.dmg
 .build/
 
 # Docker
@@ -23,6 +24,9 @@ DerivedData/
 .vscode/
 *.swp
 *.swo
+
+# Lint cache
+.ruff_cache/
 
 # Temp
 tmp/
