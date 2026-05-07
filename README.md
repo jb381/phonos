@@ -70,6 +70,10 @@ Tailscale. Set `PHONOS_AUTH_TOKEN` before exposing it beyond localhost.
 
 ### Server
 
+The “server” can be another machine on your LAN/Tailscale network, or just a
+Docker container running locally on the same Mac. For local-only use, set the
+Mac app Server URL to `http://localhost:8765`.
+
 ```bash
 git clone https://github.com/jb381/phonos && cd phonos/apps/server
 cp .env.example .env          # optional: set PHONOS_AUTH_TOKEN
