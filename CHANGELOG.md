@@ -5,9 +5,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.3.0] - 2026-05-07
+## [1.3.0] - 2026-05-07 🛡️
 
-**Reliability, Security, and Refactoring Release**
+**🛡️ Reliability, Security, and Refactoring Release**
 
 ### Added
 
@@ -46,7 +46,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [1.2.1] - 2026-05-06
+## [1.2.1] - 2026-05-06 🌐
 
 ### Fixed
 
@@ -54,9 +54,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [1.2.0] - 2026-05-06
+## [1.2.0] - 2026-05-06 🧪
 
-**The Test Release**
+**🧪 The Test Release**
 
 ### Added
 
@@ -84,9 +84,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [1.1.0] - 2026-05-05
+## [1.1.0] - 2026-05-05 🔧
 
-**Quality-of-Life and Hardening Release**
+**🔧 Quality-of-Life and Hardening Release**
 
 ### Fixed
 
@@ -113,7 +113,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `PHONOS_TRANSCRIBE_TIMEOUT_SECONDS` for configurable server-side transcription timeouts and return `504` when a transcription exceeds it.
 - Added `PHONOS_MAX_UPLOAD_MB` and stream incoming audio uploads to disk instead of reading full files into memory.
 
-## [1.0.0] - 2026-05-05
+## [1.0.0] - 2026-05-05 🎙️
 
 ### Added
 
