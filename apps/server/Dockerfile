@@ -18,4 +18,4 @@ EXPOSE 8765
 
 ENV PHONOS_PORT=8765
 
-CMD uv run uvicorn phonos_server.main:app --host 0.0.0.0 --port ${PHONOS_PORT}
+CMD ["sh", "-c", "exec uv run uvicorn phonos_server.main:app --host 0.0.0.0 --port ${PHONOS_PORT}"]

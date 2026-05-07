@@ -80,6 +80,17 @@ cp .env.example .env          # optional: set PHONOS_AUTH_TOKEN
 docker compose up -d          # boom, transcription server on :8765
 ```
 
+Or run the published server image directly:
+
+```bash
+docker run -d \
+  --name phonos-server \
+  -p 8765:8765 \
+  -e PHONOS_AUTH_TOKEN=your-secret-token \
+  -v phonos_models:/root/.cache/huggingface \
+  ghcr.io/jb381/phonos-server:latest
+```
+
 Without Docker:
 
 ```bash
@@ -190,20 +201,6 @@ Docker Compose binds to `127.0.0.1` by default. For remote access, set `PHONOS_B
 - Clipboard restoration is best-effort for complex clipboard contents, though normal text clipboard restore is supported.
 - Keychain integration tests are manual because unsigned test binaries can trigger macOS permission prompts.
 - Persistent transcript history is not implemented; history is intentionally session-only for now.
-
-───
-
-## 🧰 Troubleshooting
-
-| Symptom | What to check |
-|---|---|
-| Server connection fails | Confirm the server URL, `docker compose ps`, and `curl http://<server>:8765/health`. |
-| Auth errors | Ensure `PHONOS_AUTH_TOKEN` matches the token in the macOS Settings window. |
-| Nothing pastes | Grant Accessibility permission, or use the clipboard fallback from recent transcript history. |
-| No microphone input | Grant Microphone permission in System Settings -> Privacy & Security. |
-| Transcription times out | Use a smaller model or raise `PHONOS_TRANSCRIBE_TIMEOUT_SECONDS`. |
-| Model switch is slow | Large models can take time to download and load, especially on CPU-only hosts. |
-| Gatekeeper blocks launch | Right-click the app and choose Open, or use Open Anyway in System Settings. |
 
 ───
 

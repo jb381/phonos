@@ -10,14 +10,28 @@ How to deploy the Phonos server on your local network via Tailscale.
 
 ## Quick Deploy
 
-### 1. Clone the repo on your server
+### 1. Run the published image
+
+```bash
+docker run -d \
+  --name phonos-server \
+  -p 8765:8765 \
+  -e PHONOS_AUTH_TOKEN=your-secret-token \
+  -e PHONOS_MODEL=base.en \
+  -v phonos_models:/root/.cache/huggingface \
+  ghcr.io/jb381/phonos-server:latest
+```
+
+Use a version tag such as `ghcr.io/jb381/phonos-server:1.3.1` when you want a pinned release instead of `latest`.
+
+### 2. Or clone the repo on your server
 
 ```bash
 git clone <your-repo-url> phonos
 cd phonos/apps/server
 ```
 
-### 2. Configure
+### 3. Configure source checkout
 
 ```bash
 cp .env.example .env
@@ -35,7 +49,7 @@ PHONOS_TRANSCRIBE_TIMEOUT_SECONDS=600
 PHONOS_MAX_UPLOAD_MB=100
 ```
 
-### 3. Start the server
+### 4. Start the source checkout server
 
 ```bash
 docker compose up -d
@@ -43,7 +57,7 @@ docker compose up -d
 
 First launch downloads the Whisper model (may take a minute).
 
-### 4. Verify
+### 5. Verify
 
 ```bash
 curl http://localhost:8765/health
