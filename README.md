@@ -9,11 +9,15 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux-333?style=flat-square)]()
+[![Release](https://img.shields.io/github/v/release/jb381/phonos?style=flat-square&label=release)](https://github.com/jb381/phonos/releases)
+[![Status](https://img.shields.io/badge/status-beta-orange?style=flat-square)]()
 [![Python](https://img.shields.io/badge/python-3.11+-3776AB?style=flat-square&logo=python&logoColor=fff)]()
 
 A *Whisper Flow*–style dictation tool that runs entirely on hardware you control.
 Press a hotkey, talk, and watch your words appear in whatever app you're in.
 No cloud. No subscriptions. No mystery box between your microphone and your text.
+
+**Beta:** usable for local/Tailscale dictation, but still early and ad-hoc signed.
 
 *Phonos slays subscription dictation — your wallet gets to stay alive.* ☠️
 
@@ -98,9 +102,10 @@ ad-hoc signs, and publishes a DMG automatically.
 > → Privacy & Security and click **Open Anyway**. Accessibility permission may
 > need to be re-granted after ad-hoc rebuilds.
 >
-> To silence Gatekeeper from the terminal:
+> To silence Gatekeeper from the terminal, `sudo` may be needed because the app
+> lives in `/Applications`:
 > ```bash
-> xattr -dr com.apple.quarantine /Applications/Phonos.app
+> sudo xattr -dr com.apple.quarantine /Applications/Phonos.app
 > ```
 > The grown-up version of this is Developer ID signing + notarization. It is on
 > the roadmap.
@@ -173,6 +178,14 @@ Docker Compose binds to `127.0.0.1` by default. For remote access, set `PHONOS_B
 - Temporary client recording files are removed after each transcription flow completes.
 - Recent transcript history is session-only in the current app.
 - Server logs include request metadata and transcript text for debugging; run the server only where those logs are acceptable.
+
+## ⚠️ Current limitations
+
+- Official macOS builds are ad-hoc signed and not notarized yet, so Gatekeeper may require manual approval on first launch.
+- Phonos is intended for localhost, LAN, or private networks such as Tailscale. Do not expose the server directly to the public internet.
+- Clipboard restoration is best-effort for complex clipboard contents, though normal text clipboard restore is supported.
+- Keychain integration tests are manual because unsigned test binaries can trigger macOS permission prompts.
+- Persistent transcript history is not implemented; history is intentionally session-only for now.
 
 ───
 
