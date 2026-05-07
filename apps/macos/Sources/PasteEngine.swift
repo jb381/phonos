@@ -18,11 +18,13 @@ actor PasteEngine {
             throw PasteError.accessibilityDenied
         }
 
-        let pasteboard = NSPasteboard.general
-        let savedItems = pasteboard.pasteboardItems
-
-        pasteboard.clearContents()
-        pasteboard.setString(text, forType: .string)
+        let savedItems = await MainActor.run {
+            let pasteboard = NSPasteboard.general
+            let savedItems = snapshotPasteboardItems(pasteboard.pasteboardItems)
+            pasteboard.clearContents()
+            pasteboard.setString(text, forType: .string)
+            return savedItems
+        }
 
         try? await Task.sleep(nanoseconds: 300_000_000)
 
@@ -43,14 +45,38 @@ actor PasteEngine {
 
         // Restore previous clipboard contents after a short delay.
         try? await Task.sleep(nanoseconds: 300_000_000)
-        pasteboard.clearContents()
-        if let savedItems = savedItems, !savedItems.isEmpty {
-            pasteboard.writeObjects(savedItems)
+        await MainActor.run {
+            let pasteboard = NSPasteboard.general
+            pasteboard.clearContents()
+            let restoredItems = savedItems.map { itemData in
+                let item = NSPasteboardItem()
+                for (type, data) in itemData {
+                    item.setData(data, forType: type)
+                }
+                return item
+            }
+            if !restoredItems.isEmpty {
+                pasteboard.writeObjects(restoredItems)
+            }
         }
     }
 
-    func copyToClipboard(_ text: String) {
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(text, forType: .string)
+    func copyToClipboard(_ text: String) async {
+        await MainActor.run {
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(text, forType: .string)
+        }
+    }
+
+    private nonisolated func snapshotPasteboardItems(_ items: [NSPasteboardItem]?) -> [[NSPasteboard.PasteboardType: Data]] {
+        items?.compactMap { item in
+            var itemData: [NSPasteboard.PasteboardType: Data] = [:]
+            for type in item.types {
+                if let data = item.data(forType: type) {
+                    itemData[type] = data
+                }
+            }
+            return itemData.isEmpty ? nil : itemData
+        } ?? []
     }
 }

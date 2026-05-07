@@ -39,6 +39,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Fixed Keychain token migration race condition: added a `keychainMigrationCompleted` flag so a crash between the Keychain write and the UserDefaults delete does not leave the plaintext token in insecure storage forever.
 - Restored the user's previous clipboard contents after paste in `PasteEngine`.
+- Rebuilt clipboard restoration from pasteboard data snapshots to avoid crashes when restoring provider-backed `NSPasteboardItem` objects.
+- Prevented the menu-bar app from terminating when the last utility window closes.
 - Removed stale `Fn`/`Globe` key reference from `docs/architecture.md`.
 - Fixed duplicated `P3 — Future Capability` section in `docs/roadmap.md`.
 
