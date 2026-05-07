@@ -53,6 +53,9 @@ jobs:
         with:
           fetch-depth: 0
 
+      # KeychainStore tests are skipped by default because Keychain access in
+      # unsigned CI test binaries is unreliable and can block the test runner.
+      # They remain manual tests run locally with PHONOS_TEST_KEYCHAIN=1.
       - run: swift test
         env:
           CI: "true"

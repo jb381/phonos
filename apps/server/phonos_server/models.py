@@ -70,6 +70,7 @@ class ModelManager:
         self._started_at = time.time()
         self._transcription_count = 0
         self._last_processing_seconds: float = 0
+        self._request_count = 0
         self._process: mp.Process | None = None
         self._cmd_queue: mp.Queue | None = None
         self._result_queue: mp.Queue | None = None
@@ -108,12 +109,22 @@ class ModelManager:
     def last_processing_seconds(self) -> float:
         return self._last_processing_seconds
 
+    @property
+    def request_count(self) -> int:
+        return self._request_count
+
+    def increment_request_count(self):
+        with self._lock:
+            self._request_count += 1
+
     def record_transcription(self, processing_seconds: float):
         self._transcription_count += 1
         self._last_processing_seconds = processing_seconds
 
     def load(self, model_name: str):
         with self._lock:
+            if model_name == self._model_name and self._status == "loaded" and self.worker_alive:
+                return
             self._stop_worker()
             self._status = "loading"
             self._last_error = ""

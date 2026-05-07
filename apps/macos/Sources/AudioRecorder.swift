@@ -42,6 +42,11 @@ actor AudioRecorder {
         let url = tempDir.appendingPathComponent("phonos_recording_\(UUID().uuidString).wav")
         writeErrorMessage = nil
 
+        let resourceValues = try? tempDir.resourceValues(forKeys: [.volumeAvailableCapacityKey])
+        if let available = resourceValues?.volumeAvailableCapacity, available < 100 * 1024 * 1024 {
+            throw RecorderError.engineStartFailed("Insufficient disk space. At least 100 MB is recommended.")
+        }
+
         let engine = AVAudioEngine()
         let inputNode = engine.inputNode
 

@@ -9,7 +9,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux-333?style=flat-square)]()
-[![Python](https://img.shields.io/badge/python-3.12+-3776AB?style=flat-square&logo=python&logoColor=fff)]()
+[![Python](https://img.shields.io/badge/python-3.11+-3776AB?style=flat-square&logo=python&logoColor=fff)]()
 
 A *Whisper Flow*–style dictation tool that runs entirely on hardware you control.
 Press a hotkey, talk, and watch your words appear in whatever app you're in.

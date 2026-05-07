@@ -1,11 +1,29 @@
 import Cocoa
 import SwiftUI
 
+enum WorkflowStatus: String, CaseIterable {
+    case idle = "Idle"
+    case recording = "Recording"
+    case transcribing = "Transcribing"
+    case pasting = "Pasting"
+    case pasted = "Pasted"
+    case copiedToClipboard = "Copied to Clipboard"
+    case error = "Error"
+
+    var isBusy: Bool {
+        switch self {
+        case .recording, .transcribing, .pasting:
+            return true
+        default:
+            return false
+        }
+    }
+}
+
 @MainActor
-final class MenuBarController: NSObject, NSWindowDelegate, HotkeyManagerDelegate {
+final class MenuBarController: NSObject, NSWindowDelegate, HotkeyManagerDelegate, RecordingSessionDelegate {
     private var statusItem: NSStatusItem?
-    private let recorder = AudioRecorder()
-    private let paster = PasteEngine()
+    private let session = RecordingSession()
     private var hotkeyManager: HotkeyManager?
     private let settings = SettingsManager.shared
     private let history = TranscriptHistoryStore.shared
@@ -21,6 +39,7 @@ final class MenuBarController: NSObject, NSWindowDelegate, HotkeyManagerDelegate
 
     override init() {
         super.init()
+        Task { await session.setDelegate(self) }
         startTrackingPasteTarget()
         setupMenuBar()
         setupHotkey()
@@ -146,15 +165,15 @@ final class MenuBarController: NSObject, NSWindowDelegate, HotkeyManagerDelegate
 
     func hotkeyDidPress() {
         if settings.recordingMode == "toggle" {
-            Task { await toggleRecordingViaHotkey() }
+            Task { await session.toggleRecording(pasteTargetBundleID: lastPasteTargetBundleID) }
         } else {
-            Task { await startRecordingViaHotkey() }
+            Task { await session.start() }
         }
     }
 
     func hotkeyDidRelease() {
         if settings.recordingMode == "hold" {
-            Task { await stopAndTranscribe() }
+            Task { await session.stop(pasteTargetBundleID: lastPasteTargetBundleID) }
         }
     }
 
@@ -164,107 +183,19 @@ final class MenuBarController: NSObject, NSWindowDelegate, HotkeyManagerDelegate
     private var isRecording = false
 
     @objc private func toggleRecording() {
-        Task { await toggleRecordingViaHotkey() }
+        Task { await session.toggleRecording(pasteTargetBundleID: lastPasteTargetBundleID) }
     }
 
     private func toggleRecordingViaHotkey() async {
-        if isRecording {
-            await stopAndTranscribe()
-        } else {
-            await startRecordingViaHotkey()
-        }
+        await session.toggleRecording(pasteTargetBundleID: lastPasteTargetBundleID)
     }
 
     private func startRecordingViaHotkey() async {
-        guard !isRecording else { return }
-        do {
-            _ = try await recorder.startRecording()
-            isRecording = true
-            updateRecordingUI(true)
-            updateWorkflowStatus("Recording")
-        } catch {
-            updateWorkflowStatus("Error")
-            showError(error)
-        }
+        await session.start()
     }
 
     private func stopAndTranscribe() async {
-        guard isRecording else { return }
-
-        let recordedURL = await recorder.getOutputURL()
-        defer {
-            if let url = recordedURL {
-                try? FileManager.default.removeItem(at: url)
-            }
-        }
-
-        do {
-            try await recorder.stopRecording()
-        } catch {
-            isRecording = false
-            updateRecordingUI(false)
-            updateWorkflowStatus("Error")
-            showError(error)
-            return
-        }
-        isRecording = false
-        updateRecordingUI(false)
-        updateWorkflowStatus("Transcribing")
-
-        guard let captureURL = recordedURL else {
-            updateWorkflowStatus("Idle")
-            return
-        }
-        let pasteTargetBundleID = lastPasteTargetBundleID
-
-        do {
-            let result = try await ServerClient().transcribe(fileURL: captureURL)
-            lastTranscript = result.text
-            await MainActor.run {
-                history.add(result.text)
-                refreshRecentMenu()
-            }
-
-            guard !result.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-                updateWorkflowStatus("Idle")
-                return
-            }
-
-            try? await Task.sleep(nanoseconds: 100_000_000)
-            reactivatePasteTarget(bundleIdentifier: pasteTargetBundleID)
-            try? await Task.sleep(nanoseconds: 150_000_000)
-
-            do {
-                updateWorkflowStatus("Pasting")
-                try await paster.pasteText(result.text)
-                updateWorkflowStatus("Pasted")
-            } catch PasteError.accessibilityDenied {
-                await paster.copyToClipboard(result.text)
-                updateWorkflowStatus("Copied to Clipboard")
-                showAccessibilityAlert()
-            } catch {
-                await paster.copyToClipboard(result.text)
-                updateWorkflowStatus("Copied to Clipboard")
-            }
-        } catch {
-            updateWorkflowStatus("Error")
-            let message = error.localizedDescription
-            if message.contains("Timed out") {
-                showLastError("Timed out. Try a smaller model (Settings → Model) or increase server timeout.")
-            } else {
-                showLastError(message)
-            }
-            showError(error)
-        }
-    }
-
-    private func reactivatePasteTarget(bundleIdentifier: String?) {
-        guard let bundleIdentifier,
-              bundleIdentifier != Bundle.main.bundleIdentifier,
-              let app = NSWorkspace.shared.runningApplications.first(where: { $0.bundleIdentifier == bundleIdentifier })
-        else { return }
-
-        app.activate(options: [])
+        await session.stop(pasteTargetBundleID: lastPasteTargetBundleID)
     }
 
     @objc private func pasteLast() {
@@ -273,18 +204,41 @@ final class MenuBarController: NSObject, NSWindowDelegate, HotkeyManagerDelegate
                 NSSound.beep()
                 return
             }
-            do {
-                try await paster.pasteText(lastTranscript)
-                updateWorkflowStatus("Pasted")
-            } catch PasteError.accessibilityDenied {
-                await paster.copyToClipboard(lastTranscript)
-                updateWorkflowStatus("Copied to Clipboard")
-                showAccessibilityAlert()
-            } catch {
-                await paster.copyToClipboard(lastTranscript)
-                updateWorkflowStatus("Copied to Clipboard")
-            }
+            await session.pasteLastTranscript(lastTranscript)
         }
+    }
+
+    // MARK: - RecordingSessionDelegate
+
+    func recordingSession(_ session: RecordingSession, didUpdate status: WorkflowStatus) {
+        updateWorkflowStatus(status)
+        if status == .recording {
+            isRecording = true
+            updateRecordingUI(true)
+        } else if status != .transcribing && status != .pasting {
+            isRecording = false
+            updateRecordingUI(false)
+        }
+    }
+
+    func recordingSession(_ session: RecordingSession, didReceive transcript: String) {
+        lastTranscript = transcript
+        history.add(transcript)
+        refreshRecentMenu()
+    }
+
+    func recordingSession(_ session: RecordingSession, didFailWith error: Error) {
+        if case PasteError.accessibilityDenied = error {
+            showAccessibilityAlert()
+            return
+        }
+        let message = error.localizedDescription
+        if message.contains("Timed out") {
+            showLastError("Timed out. Try a smaller model (Settings → Model) or increase server timeout.")
+        } else {
+            showLastError(message)
+        }
+        showError(error)
     }
 
     // MARK: - UI Helpers
@@ -333,14 +287,14 @@ final class MenuBarController: NSObject, NSWindowDelegate, HotkeyManagerDelegate
     }
 
     @MainActor
-    private func updateWorkflowStatus(_ status: String) {
-        workflowStatusItem.title = "Status: \(status)"
-        let busy = (status == "Recording" || status == "Transcribing" || status == "Pasting")
+    private func updateWorkflowStatus(_ status: WorkflowStatus) {
+        workflowStatusItem.title = "Status: \(status.rawValue)"
+        let busy = status.isBusy
         if busy != isProcessing {
             isProcessing = busy
             setActionsEnabled(!busy)
         }
-        if status == "Idle" || status == "Pasted" || status == "Copied to Clipboard" {
+        if status == .idle || status == .pasted || status == .copiedToClipboard {
             hideLastError()
         }
     }

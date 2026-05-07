@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 
@@ -17,7 +18,7 @@ class SetModelRequest(BaseModel):
 
 
 manager: ModelManager | None = None
-request_count = 0
+_transcribe_semaphore = asyncio.Semaphore(1)
 
 
 @asynccontextmanager
@@ -35,8 +36,7 @@ app = FastAPI(title="Phonos", version="0.1.0", lifespan=lifespan)
 
 @app.middleware("http")
 async def count_requests(request, call_next):
-    global request_count
-    request_count += 1
+    manager.increment_request_count()
     return await call_next(request)
 
 
@@ -49,7 +49,7 @@ def health():
         "last_error": manager.last_error,
         "last_load_seconds": manager.last_load_seconds,
         "uptime_seconds": manager.uptime_seconds,
-        "request_count": request_count,
+        "request_count": manager.request_count,
         "transcription_count": manager.transcription_count,
         "last_processing_seconds": manager.last_processing_seconds,
         "device": get_settings().device,
@@ -97,4 +97,5 @@ async def transcribe(
     _=Depends(require_auth),
     settings: Settings = Depends(get_settings),
 ):
-    return await transcribe_audio(file, manager, settings)
+    async with _transcribe_semaphore:
+        return await transcribe_audio(file, manager, settings)

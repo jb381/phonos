@@ -3,12 +3,9 @@ import KeyboardShortcuts
 
 struct SettingsView: View {
     @ObservedObject private var settings = SettingsManager.shared
-    @State private var serverStatus = "Unknown"
-    @State private var availableModels: [String] = []
-    @State private var isChecking = false
+    @StateObject private var viewModel = ServerSettingsViewModel()
     @State private var isScanning = false
     @State private var scanResults: [ScanResult] = []
-    @State private var isSyncingModelSelection = false
     @State private var isSyncingLaunchAtLogin = false
     @State private var launchAtLoginError: String?
 
@@ -22,8 +19,8 @@ struct SettingsView: View {
                         .frame(width: 8, height: 8)
                 }
 
-                if !serverStatus.isEmpty && serverStatus.lowercased() != "ok" && !serverStatus.lowercased().hasPrefix("model:") {
-                    Text(serverStatus)
+                if !viewModel.serverStatus.isEmpty && viewModel.serverStatus.lowercased() != "ok" && !viewModel.serverStatus.lowercased().hasPrefix("model:") {
+                    Text(viewModel.serverStatus)
                         .font(.caption)
                         .foregroundColor(statusColor)
                         .fixedSize(horizontal: false, vertical: true)
@@ -38,12 +35,12 @@ struct SettingsView: View {
                 }
 
                 HStack {
-                    Button("Check Connection") { checkHealth() }
+                    Button("Check Connection") { viewModel.checkHealth() }
                     Button("Scan Network") { startScan() }
                         .disabled(isScanning)
                 }
 
-                if isChecking {
+                if viewModel.isChecking {
                     HStack {
                         ProgressView().scaleEffect(0.5)
                         Text("Checking…").font(.caption).foregroundColor(.secondary)
@@ -70,20 +67,20 @@ struct SettingsView: View {
 
             Section("Model") {
                 Picker("Model", selection: $settings.selectedModel) {
-                    ForEach(availableModels, id: \.self) { model in
+                    ForEach(viewModel.availableModels, id: \.self) { model in
                         Text(model).tag(model)
                     }
                 }
                 .onChange(of: settings.selectedModel) { _, newModel in
-                    guard !isSyncingModelSelection else { return }
-                    setModel(newModel)
+                    guard !viewModel.isSyncingModelSelection else { return }
+                    viewModel.setModel(newModel)
                 }
 
                 Text(ModelCatalog.description(for: settings.selectedModel))
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
-                Button("Refresh Models") { fetchModels() }
+                Button("Refresh Models") { viewModel.fetchModels() }
             }
 
             Section("Recording") {
@@ -117,64 +114,16 @@ struct SettingsView: View {
         .padding()
         .frame(width: 420)
         .onAppear {
-            fetchModels()
-            checkHealth()
+            viewModel.fetchModels()
+            viewModel.checkHealth()
         }
     }
 
     private var statusColor: Color {
-        switch serverStatus.lowercased() {
+        switch viewModel.serverStatus.lowercased() {
         case "ok": return .green
         case "loading": return .yellow
         default: return .red
-        }
-    }
-
-    private func checkHealth() {
-        isChecking = true
-        Task {
-            do {
-                let health = try await ServerClient().healthCheck()
-                await MainActor.run {
-                    serverStatus = health.status
-                    isChecking = false
-                }
-            } catch {
-                await MainActor.run {
-                    serverStatus = error.localizedDescription
-                    isChecking = false
-                }
-            }
-        }
-    }
-
-    private func fetchModels() {
-        Task {
-            do {
-                let response = try await ServerClient().listModels()
-                await MainActor.run {
-                    availableModels = response.models
-                    isSyncingModelSelection = true
-                    settings.selectedModel = response.active
-                    isSyncingModelSelection = false
-                }
-            } catch {
-                await MainActor.run { serverStatus = error.localizedDescription }
-            }
-        }
-    }
-
-    private func setModel(_ model: String) {
-        if ModelCatalog.isLargeCPUModel(model) {
-            serverStatus = "\(model) may be slow on CPU"
-        }
-        Task {
-            do {
-                let response = try await ServerClient().setActiveModel(model)
-                await MainActor.run { serverStatus = "Model: \(response.model)" }
-            } catch {
-                await MainActor.run { serverStatus = error.localizedDescription }
-            }
         }
     }
 

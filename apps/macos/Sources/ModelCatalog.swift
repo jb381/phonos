@@ -21,6 +21,6 @@ enum ModelCatalog {
     }
 
     static func isLargeCPUModel(_ model: String) -> Bool {
-        model == "medium.en" || model == "large-v3"
+        model == "medium.en" || model == "distil-large-v3" || model == "large-v3"
     }
 }

@@ -80,7 +80,7 @@ PHONOS_MAX_UPLOAD_MB=100
 - Health check and connection status display
 - Model selector (fetched from server)
 - Hold-to-record and toggle recording modes
-- Global hotkey: attempt `Fn`/`Globe`, fallback to left `Control`
+- Global hotkey: Control-Space by default (customizable via `KeyboardShortcuts`)
 - Direct paste into active application
 - Transcript preview in menu
 

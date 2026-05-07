@@ -4,12 +4,9 @@ import SwiftUI
 
 struct FirstRunView: View {
     @ObservedObject private var settings = SettingsManager.shared
+    @StateObject private var viewModel = ServerSettingsViewModel()
     @State private var microphoneGranted = false
     @State private var accessibilityGranted = false
-    @State private var serverStatus = "Not checked"
-    @State private var isCheckingServer = false
-    @State private var availableModels: [String] = []
-    @State private var isSyncingModelSelection = false
     let onDone: () -> Void
 
     var body: some View {
@@ -53,23 +50,23 @@ struct FirstRunView: View {
 
                 HStack {
                     statusDot
-                    Text(serverStatus)
+                    Text(viewModel.serverStatus)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     Spacer()
-                    Button("Check Connection") { checkServer() }
-                        .disabled(isCheckingServer)
+                    Button("Check Connection") { viewModel.checkHealth() }
+                        .disabled(viewModel.isChecking)
                 }
 
-                if !availableModels.isEmpty {
+                if !viewModel.availableModels.isEmpty {
                     Picker("Model", selection: $settings.selectedModel) {
-                        ForEach(availableModels, id: \.self) { model in
+                        ForEach(viewModel.availableModels, id: \.self) { model in
                             Text(model).tag(model)
                         }
                     }
                     .onChange(of: settings.selectedModel) { _, newModel in
-                        guard !isSyncingModelSelection else { return }
-                        setModel(newModel)
+                        guard !viewModel.isSyncingModelSelection else { return }
+                        viewModel.setModel(newModel)
                     }
 
                     Text(ModelCatalog.description(for: settings.selectedModel))
@@ -83,8 +80,7 @@ struct FirstRunView: View {
             HStack {
                 Spacer()
                 Button("Done") {
-                    settings.firstRunCompleted = true
-                    onDone()
+                    finishSetup()
                 }
                 .keyboardShortcut(.defaultAction)
             }
@@ -93,13 +89,13 @@ struct FirstRunView: View {
         .frame(width: 460, height: 500)
         .onAppear {
             refreshPermissions()
-            fetchModels()
+            viewModel.fetchModels()
         }
     }
 
     private var statusDot: some View {
         Circle()
-            .fill(serverStatus.lowercased() == "ok" ? Color.green : Color.secondary)
+            .fill(viewModel.serverStatus.lowercased() == "ok" ? Color.green : Color.secondary)
             .frame(width: 8, height: 8)
     }
 
@@ -147,57 +143,26 @@ struct FirstRunView: View {
         refreshPermissions()
     }
 
-    private func checkServer() {
-        isCheckingServer = true
-        Task {
-            do {
-                let health = try await ServerClient().healthCheck()
-                await MainActor.run {
-                    serverStatus = health.status
-                    isCheckingServer = false
-                }
-            } catch {
-                await MainActor.run {
-                    serverStatus = error.localizedDescription
-                    isCheckingServer = false
-                }
+    private func finishSetup() {
+        let missingMic = !microphoneGranted
+        let missingServer = viewModel.serverStatus.lowercased() != "ok"
+        if missingMic || missingServer {
+            let alert = NSAlert()
+            alert.messageText = "Setup Incomplete"
+            var issues: [String] = []
+            if missingMic { issues.append("microphone permission not granted") }
+            if missingServer { issues.append("server connection not verified") }
+            alert.informativeText = "You are missing: \(issues.joined(separator: " and ")). Continue anyway?"
+            alert.alertStyle = .warning
+            alert.addButton(withTitle: "Continue")
+            alert.addButton(withTitle: "Cancel")
+            if alert.runModal() == .alertFirstButtonReturn {
+                settings.firstRunCompleted = true
+                onDone()
             }
-        }
-    }
-
-    private func fetchModels() {
-        Task {
-            do {
-                let response = try await ServerClient().listModels()
-                await MainActor.run {
-                    availableModels = response.models
-                    isSyncingModelSelection = true
-                    settings.selectedModel = response.active
-                    isSyncingModelSelection = false
-                }
-            } catch {
-                await MainActor.run {
-                    serverStatus = error.localizedDescription
-                }
-            }
-        }
-    }
-
-    private func setModel(_ model: String) {
-        if ModelCatalog.isLargeCPUModel(model) {
-            serverStatus = "\(model) may be slow on CPU"
-        }
-        Task {
-            do {
-                let response = try await ServerClient().setActiveModel(model)
-                await MainActor.run {
-                    serverStatus = "Model: \(response.model)"
-                }
-            } catch {
-                await MainActor.run {
-                    serverStatus = error.localizedDescription
-                }
-            }
+        } else {
+            settings.firstRunCompleted = true
+            onDone()
         }
     }
 }

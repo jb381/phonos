@@ -7,6 +7,11 @@ final class KeychainStoreTests: XCTestCase {
 
     /// Keychain access requires user interaction for unsigned test binaries.
     /// Tests are skipped by default. Set PHONOS_TEST_KEYCHAIN=1 to run them.
+    ///
+    /// CI strategy: These tests are intentionally skipped in GitHub Actions
+    /// because unsigned Swift test binaries trigger Keychain permission dialogs
+    /// that block the runner. For CI coverage, prefer a mocked Security-framework
+    /// adapter; until one is added, these remain manual tests run locally.
     private static var keychainTestsEnabled: Bool {
         ProcessInfo.processInfo.environment["PHONOS_TEST_KEYCHAIN"] == "1"
     }

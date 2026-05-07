@@ -18,8 +18,11 @@ actor PasteEngine {
             throw PasteError.accessibilityDenied
         }
 
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(text, forType: .string)
+        let pasteboard = NSPasteboard.general
+        let savedItems = pasteboard.pasteboardItems
+
+        pasteboard.clearContents()
+        pasteboard.setString(text, forType: .string)
 
         try? await Task.sleep(nanoseconds: 300_000_000)
 
@@ -37,6 +40,13 @@ actor PasteEngine {
         vDown.post(tap: .cghidEventTap)
         try? await Task.sleep(nanoseconds: 50_000_000)
         vUp.post(tap: .cghidEventTap)
+
+        // Restore previous clipboard contents after a short delay.
+        try? await Task.sleep(nanoseconds: 300_000_000)
+        pasteboard.clearContents()
+        if let savedItems = savedItems, !savedItems.isEmpty {
+            pasteboard.writeObjects(savedItems)
+        }
     }
 
     func copyToClipboard(_ text: String) {

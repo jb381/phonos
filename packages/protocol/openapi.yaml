@@ -210,5 +210,6 @@ components:
     ErrorResponse:
       type: object
       properties:
-        error:
+        detail:
           type: string
+          description: Human-readable error message (FastAPI native error key)

@@ -518,12 +518,6 @@ Relevant files:
 Acceptance criteria:
 - A new user or contributor can trust that documented features match shipped behavior.
 
-### P3 — Future Capability
-
-#### Streaming transcription mode
-
----
-
 ## Phase 10: The Test Release (v1.2.0)
 
 **Goal**: Close the testing gap on the macOS side, add E2E coverage, and ship small UX improvements that improve troubleshooting.

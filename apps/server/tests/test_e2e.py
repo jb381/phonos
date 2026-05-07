@@ -5,10 +5,8 @@ Requires Docker. Marked with ``@pytest.mark.e2e`` so it can be excluded
 with ``-m "not e2e"`` and run selectively with ``-m e2e``.
 """
 
-import io
 import json
 import os
-import struct
 import subprocess
 import time
 import urllib.error
@@ -71,32 +69,16 @@ def docker_compose_up():
         cwd=server_dir,
         check=False,
         capture_output=True,
-        timeout=60,
+        timeout=150,
     )
 
 
 @pytest.fixture(scope="module")
 def sample_wav():
     """In-memory 16 kHz mono WAV with one second of silence (or close to it)."""
-    buf = io.BytesIO()
-    sample_rate = 16000
-    num_samples = sample_rate  # 1 second
+    from tests.utils import generate_silent_wav
 
-    buf.write(b"RIFF")
-    buf.write(struct.pack("<I", 36 + num_samples * 2))
-    buf.write(b"WAVE")
-    buf.write(b"fmt ")
-    buf.write(struct.pack("<I", 16))  # fmt chunk size
-    buf.write(struct.pack("<HH", 1, 1))  # PCM, mono
-    buf.write(struct.pack("<I", sample_rate))
-    buf.write(struct.pack("<I", sample_rate * 2))  # byte rate
-    buf.write(struct.pack("<HH", 2, 16))  # block align, bits per sample
-    buf.write(b"data")
-    buf.write(struct.pack("<I", num_samples * 2))
-    buf.write(b"\x00\x00" * num_samples)
-
-    buf.seek(0)
-    return buf
+    return generate_silent_wav(duration_seconds=1.0, sample_rate=16000)
 
 
 @pytest.mark.e2e

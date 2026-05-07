@@ -161,19 +161,32 @@ actor ServerClient {
         req.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
         authHeader(for: &req)
 
-        let fileData = try Data(contentsOf: fileURL)
         let filename = fileURL.lastPathComponent
-        var body = Data()
-        body.append("--\(boundary)\r\n".data(using: .utf8)!)
-        body.append("Content-Disposition: form-data; name=\"file\"; filename=\"\(filename)\"\r\n".data(using: .utf8)!)
-        body.append("Content-Type: audio/wav\r\n\r\n".data(using: .utf8)!)
-        body.append(fileData)
-        body.append("\r\n--\(boundary)--\r\n".data(using: .utf8)!)
+        let preamble = "--\(boundary)\r\n" +
+            "Content-Disposition: form-data; name=\"file\"; filename=\"\(filename)\"\r\n" +
+            "Content-Type: audio/wav\r\n\r\n"
+        let postamble = "\r\n--\(boundary)--\r\n"
 
-        req.httpBody = body
+        // Write the multipart body to a temp file by streaming the audio file
+        // in chunks so memory usage stays bounded regardless of recording length.
+        let tmpURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("phonos_upload_\(UUID().uuidString).tmp")
+        defer { try? FileManager.default.removeItem(at: tmpURL) }
+
+        FileManager.default.createFile(atPath: tmpURL.path, contents: nil, attributes: nil)
+        let outHandle = try FileHandle(forWritingTo: tmpURL)
+        defer { try? outHandle.close() }
+        try outHandle.write(contentsOf: preamble.data(using: .utf8)!)
+
+        let inHandle = try FileHandle(forReadingFrom: fileURL)
+        defer { try? inHandle.close() }
+        while let chunk = try inHandle.read(upToCount: 64 * 1024), !chunk.isEmpty {
+            try outHandle.write(contentsOf: chunk)
+        }
+        try outHandle.write(contentsOf: postamble.data(using: .utf8)!)
 
         do {
-            let (data, response) = try await session.data(for: req)
+            let (data, response) = try await session.upload(for: req, fromFile: tmpURL)
             let _ = try handleResponse(data: data, response: response)
             return try JSONDecoder().decode(TranscriptionResponse.self, from: data)
         } catch let e as ServerError {

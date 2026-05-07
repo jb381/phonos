@@ -91,6 +91,27 @@ class TestModelSwitch:
         assert health["model"] == ""
         assert "tiny.en" in health["last_error"]
 
+    def test_set_same_model_short_circuits(self, client_with_auth, auth_headers, monkeypatch):
+        from phonos_server.models import ModelManager
+
+        start_calls = []
+        original_start = ModelManager._start_worker
+
+        def tracking_start(self, model_name: str):
+            start_calls.append(model_name)
+            return original_start(self, model_name)
+
+        monkeypatch.setattr(ModelManager, "_start_worker", tracking_start)
+
+        response = client_with_auth.put(
+            "/models/active",
+            json={"model": "base.en"},
+            headers=auth_headers,
+        )
+
+        assert response.status_code == 200
+        assert start_calls == [], "Loading the already-active model should short-circuit"
+
 
 class TestModelManager:
     def test_load_does_not_publish_failed_model(self):
@@ -143,6 +164,18 @@ class TestTranscribe:
             headers=auth_headers,
         )
         assert response.status_code == 400
+
+    def test_transcribe_invalid_wav_header(self, client_with_auth, auth_headers):
+        import io
+
+        fake_wav = io.BytesIO(b"NOT_A_RIFF_WAVE_FILE")
+        response = client_with_auth.post(
+            "/transcribe",
+            files={"file": ("test.wav", fake_wav, "audio/wav")},
+            headers=auth_headers,
+        )
+        assert response.status_code == 400
+        assert "Invalid WAV" in response.json()["detail"]
 
     def test_transcribe_oversized_file(
         self, client_with_auth, auth_headers, sample_wav, monkeypatch

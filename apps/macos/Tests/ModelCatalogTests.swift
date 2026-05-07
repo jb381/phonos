@@ -77,7 +77,7 @@ final class ModelCatalogTests: XCTestCase {
     }
 
     func testIsLargeCPUModelForDistilLargeV3() {
-        XCTAssertFalse(ModelCatalog.isLargeCPUModel("distil-large-v3"))
+        XCTAssertTrue(ModelCatalog.isLargeCPUModel("distil-large-v3"))
     }
 
     func testIsLargeCPUModelForUnknownModel() {
@@ -104,7 +104,7 @@ final class ModelCatalogTests: XCTestCase {
         let catalogLargeModels = ["tiny.en", "base.en", "small.en", "medium.en", "turbo", "distil-large-v3", "large-v3", "unknown"].filter {
             ModelCatalog.isLargeCPUModel($0)
         }
-        let expectedLarge = ["medium.en", "large-v3"]
+        let expectedLarge = ["medium.en", "distil-large-v3", "large-v3"]
         XCTAssertEqual(catalogLargeModels, expectedLarge, "isLargeCPUModel should only return true for the models that are described as slow/heavy")
     }
 }

@@ -94,6 +94,12 @@ In the Mac app Settings → Auth Token, enter the same value.
 
 Without a token, the server is open to anyone on the network. Even with Tailscale, a token is recommended for defense-in-depth.
 
+## macOS App Transport Security
+
+The macOS app disables ATS (`NSAllowsArbitraryLoads`) because users may configure arbitrary server URLs, including Tailscale IPs (100.x.x.x) and LAN addresses that are not covered by `NSAllowsLocalNetworking` (which only exempts RFC 1918 private ranges and `.local` domains). `NSExceptionDomains` cannot be used because the target domain is user-configured and not known at build time.
+
+This is a deliberate trade-off: the app connects only to the user-controlled Phonos server, and the optional `PHONOS_AUTH_TOKEN` provides application-level authentication. No public internet endpoints are contacted.
+
 ## Firewall
 
 The server binds to `0.0.0.0:8765` inside Docker, mapped to host port `8765`.
@@ -155,6 +161,12 @@ brew install ffmpeg
 # Debian/Ubuntu
 sudo apt install ffmpeg
 ```
+
+## Graceful Shutdown
+
+The Docker Compose configuration sets `stop_grace_period: 90s` so that an in-flight transcription is allowed to finish when the container receives `SIGTERM` (e.g. during `docker compose up` with a new image). The server holds the model-manager lock during transcription, so shutdown will wait for the request path to complete.
+
+If you run without Docker, send `SIGTERM` directly to the Uvicorn process. Active transcriptions should complete before the worker is torn down.
 
 ## Systemd Service (optional)
 

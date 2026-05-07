@@ -52,6 +52,15 @@ async def transcribe_audio(
             os.unlink(tmp_path)
         raise HTTPException(status_code=400, detail="Empty audio file")
 
+    # Validate WAV magic bytes when the extension claims WAV
+    if suffix == ".wav":
+        with open(tmp_path, "rb") as f:
+            header = f.read(12)
+        if header[:4] != b"RIFF" or header[8:12] != b"WAVE":
+            with contextlib.suppress(OSError):
+                os.unlink(tmp_path)
+            raise HTTPException(status_code=400, detail="Invalid WAV file header")
+
     logger.info(
         "Received transcription request: filename=%s content_type=%s size_bytes=%d model=%s",
         file.filename,

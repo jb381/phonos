@@ -72,25 +72,6 @@ def auth_headers():
 
 @pytest.fixture
 def sample_wav():
-    import io
-    import struct
+    from tests.utils import generate_silent_wav
 
-    buf = io.BytesIO()
-    sample_rate = 16000
-    num_samples = 16000
-
-    buf.write(b"RIFF")
-    buf.write(struct.pack("<I", 36 + num_samples * 2))
-    buf.write(b"WAVE")
-    buf.write(b"fmt ")
-    buf.write(struct.pack("<I", 16))
-    buf.write(struct.pack("<HH", 1, 1))
-    buf.write(struct.pack("<I", sample_rate))
-    buf.write(struct.pack("<I", sample_rate * 2))
-    buf.write(struct.pack("<HH", 2, 16))
-    buf.write(b"data")
-    buf.write(struct.pack("<I", num_samples * 2))
-    buf.write(b"\x00\x00" * num_samples)
-
-    buf.seek(0)
-    return buf
+    return generate_silent_wav(duration_seconds=1.0, sample_rate=16000)

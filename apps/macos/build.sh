@@ -52,6 +52,16 @@ cat > "$APP_DIR/Contents/Info.plist" << PLIST
     <true/>
     <key>NSAppleEventsUsageDescription</key>
     <string>Phonos needs Accessibility access for paste automation.</string>
+    <!--
+      App Transport Security (ATS)
+      NSAllowsArbitraryLoads is required because users may configure arbitrary
+      server URLs, including Tailscale IPs (100.x.x.x) and LAN addresses that
+      are not covered by NSAllowsLocalNetworking (which only exempts RFC 1918
+      private ranges and .local domains). NSExceptionDomains cannot be used
+      because the domain/IP is user-configured and not known at build time.
+      All connections are still protected by the optional bearer-token auth
+      layer configured in the Phonos server.
+    -->
     <key>NSAppTransportSecurity</key>
     <dict>
         <key>NSAllowsArbitraryLoads</key>
@@ -87,7 +97,7 @@ DMG_DIR=$(mktemp -d)
 cp -R "$APP_DIR" "$DMG_DIR/"
 ln -s /Applications "$DMG_DIR/Applications"
 DMG_NAME="Phonos.dmg"
-hdiutil create -volname "Phonos" -srcfolder "$DMG_DIR" -ov -format UDZO -fs HFS+ "$DMG_NAME" 2>&1
+hdiutil create -volname "Phonos" -srcfolder "$DMG_DIR" -ov -format UDZO -fs APFS "$DMG_NAME" 2>&1
 rm -rf "$DMG_DIR"
 
 echo ""

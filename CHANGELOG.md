@@ -5,6 +5,45 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-05-07
+
+**Reliability, Security, and Refactoring Release**
+
+### Added
+
+- Streamed audio upload in the macOS client by writing the multipart body to a temp file and using `URLSessionUploadTask`, keeping memory usage bounded regardless of recording length.
+- Audio content validation on the server: `.wav` uploads are now checked for valid `RIFF/WAVE` magic bytes before being passed to the transcription worker.
+- Disk-space check before recording on macOS: warns immediately if fewer than 100 MB are available on the temp volume.
+- Concurrency guard on the server: transcription requests are gated by an `asyncio.Semaphore(1)` so only one transcription runs at a time.
+- `WorkflowStatus` enum in the macOS app to replace stringly-typed workflow state.
+- `RecordingSession` actor that owns the recording → transcribing → pasting state machine, extracted from `MenuBarController`.
+- `ServerSettingsViewModel` that centralizes server health, model fetching, and model switching logic, shared by `FirstRunView` and `SettingsView`.
+- First-run completion warning when the user clicks Done without microphone permission or a verified server connection.
+- Added `stop_grace_period: 90s` to the Docker Compose service so in-flight transcriptions can finish during redeploys.
+- Added security note in `docs/deployment.md` explaining the App Transport Security trade-off.
+- Added shared `tests/utils.py` for server test fixtures.
+- Added server tests for short-circuit model loading and invalid WAV headers.
+
+### Changed
+
+- Hardened App Transport Security exception in macOS build with an inline comment documenting why `NSAllowsArbitraryLoads` is necessary for arbitrary user-configured server URLs.
+- Moved the global HTTP request counter onto `ModelManager` and guarded it with `self._lock` for thread safety.
+- OpenAPI `ErrorResponse` schema now documents `detail` (the FastAPI native key) instead of the non-standard `error` field.
+- Switched DMG filesystem from HFS+ to APFS for modern macOS distribution.
+- Aligned README Python version badge with build files: now shows `3.11+` instead of `3.12+`.
+- `distil-large-v3` is now flagged as a large CPU model (756M parameters, comparable to `medium.en`).
+- Debounced Keychain writes for the auth token by 0.3 s to avoid repeated writes on every keystroke.
+- Documented the Keychain test strategy in `.github/workflows/ci.yml` and `KeychainStoreTests.swift`.
+
+### Fixed
+
+- Fixed Keychain token migration race condition: added a `keychainMigrationCompleted` flag so a crash between the Keychain write and the UserDefaults delete does not leave the plaintext token in insecure storage forever.
+- Restored the user's previous clipboard contents after paste in `PasteEngine`.
+- Removed stale `Fn`/`Globe` key reference from `docs/architecture.md`.
+- Fixed duplicated `P3 — Future Capability` section in `docs/roadmap.md`.
+
+---
+
 ## [1.2.1] - 2026-05-06
 
 ### Fixed
