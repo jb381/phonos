@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Replaced app icon and menu bar icons with a new brand identity — tackled with OpenAI ImageGen 2 until API limits were exhausted (hence the app icon is slightly bigger than ideal).
 - Microphone input device selector in Settings: users can now choose a specific microphone from a picker, or leave it at "System Default".
 - `AudioDeviceManager` utility wrapping CoreAudio to enumerate input devices, set the default input device, and query the current default.
 - `AudioRecorder` now temporarily switches to the user-selected input device at recording start and restores the original device on stop.

@@ -29,6 +29,16 @@ find .build -maxdepth 5 -path "*/release/*.bundle" -type d ! -path "*/index-buil
         ditto "$bundle" "$destination"
     done
 
+# Copy brand assets.
+if [ -f "Assets/Brand/PhonosLogo.png" ]; then
+    cp "Assets/Brand/PhonosLogo.png" "$APP_DIR/Contents/Resources/PhonosLogo.png"
+fi
+
+# Copy custom menu-bar template icons.
+if [ -d "Assets/MenuBar" ]; then
+    find "Assets/MenuBar" -maxdepth 1 -type f -name "*.png" -exec cp {} "$APP_DIR/Contents/Resources/" \;
+fi
+
 # Copy app icon when the generated macOS icon asset is available.
 if [ -f "Assets/AppIcon.icns" ]; then
     cp "Assets/AppIcon.icns" "$APP_DIR/Contents/Resources/AppIcon.icns"

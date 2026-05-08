@@ -104,8 +104,7 @@ final class MenuBarController: NSObject, NSWindowDelegate, HotkeyManagerDelegate
     private func setupMenuBar() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         if let button = statusItem?.button {
-            button.image = NSImage(systemSymbolName: "mic", accessibilityDescription: "Idle")
-            button.image?.isTemplate = true
+            button.image = menuBarImage(named: "PhonosMenuBarIdleTemplate", description: "Idle")
         }
         buildMenu()
     }
@@ -165,6 +164,18 @@ final class MenuBarController: NSObject, NSWindowDelegate, HotkeyManagerDelegate
 
     private var setupMenuItemTitle: String {
         settings.firstRunCompleted ? "Setup Assistant\u{2026}" : "Setup\u{2026}"
+    }
+
+    private func menuBarImage(named name: String, description: String) -> NSImage? {
+        guard let url = Bundle.main.url(forResource: name, withExtension: "png"),
+              let image = NSImage(contentsOf: url)
+        else {
+            return NSImage(systemSymbolName: "terminal", accessibilityDescription: description)
+        }
+        image.accessibilityDescription = description
+        image.isTemplate = true
+        image.size = NSSize(width: 18, height: 18)
+        return image
     }
 
     private func menuSymbol(_ names: [String], description: String) -> NSImage? {
@@ -284,8 +295,7 @@ final class MenuBarController: NSObject, NSWindowDelegate, HotkeyManagerDelegate
     private func updateRecordingUI(_ recording: Bool) {
         let button = statusItem?.button
         if recording {
-            button?.image = NSImage(systemSymbolName: "mic.fill", accessibilityDescription: "Recording")
-            button?.image?.isTemplate = true
+            button?.image = menuBarImage(named: "PhonosMenuBarRecordingTemplate", description: "Recording")
             button?.wantsLayer = true
             let pulse = CABasicAnimation(keyPath: "opacity")
             pulse.fromValue = 1.0
@@ -295,8 +305,7 @@ final class MenuBarController: NSObject, NSWindowDelegate, HotkeyManagerDelegate
             pulse.repeatCount = .infinity
             button?.layer?.add(pulse, forKey: "pulse")
         } else {
-            button?.image = NSImage(systemSymbolName: "mic", accessibilityDescription: "Idle")
-            button?.image?.isTemplate = true
+            button?.image = menuBarImage(named: "PhonosMenuBarIdleTemplate", description: "Idle")
             button?.layer?.removeAnimation(forKey: "pulse")
             button?.layer?.opacity = 1.0
         }

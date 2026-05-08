@@ -43,6 +43,14 @@ if [ -f "Assets/AppIcon.icns" ]; then
     cp "Assets/AppIcon.icns" "$APP_DIR/Contents/Resources/AppIcon.icns"
 fi
 
+if [ -f "Assets/Brand/PhonosLogo.png" ]; then
+    cp "Assets/Brand/PhonosLogo.png" "$APP_DIR/Contents/Resources/PhonosLogo.png"
+fi
+
+if [ -d "Assets/MenuBar" ]; then
+    find "Assets/MenuBar" -maxdepth 1 -type f -name "*.png" -exec cp {} "$APP_DIR/Contents/Resources/" \;
+fi
+
 chmod -R u+rwX,go+rX "$APP_DIR"
 
 cat > "$APP_DIR/Contents/Info.plist" << PLIST
