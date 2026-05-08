@@ -85,11 +85,14 @@ private struct TranscriptRow: View {
 
                 Spacer()
 
-                Button("Copy") {
+                Button {
                     NSPasteboard.general.clearContents()
                     NSPasteboard.general.setString(entry.text, forType: .string)
+                } label: {
+                    Image(systemName: "doc.on.doc")
                 }
                 .buttonStyle(.borderless)
+                .help("Copy transcript")
             }
 
             Text(entry.text)
@@ -98,6 +101,6 @@ private struct TranscriptRow: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding(12)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
 }

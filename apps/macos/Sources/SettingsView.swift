@@ -11,130 +11,104 @@ struct SettingsView: View {
     @State private var availableInputDevices: [AudioDevice] = []
 
     var body: some View {
-        Form {
-            Section {
-                HStack {
-                    TextField("Server URL", text: $settings.serverURL)
-                    Circle()
-                        .fill(statusColor)
-                        .frame(width: 8, height: 8)
-                }
+        VStack(alignment: .leading, spacing: 16) {
+            SettingsSection(title: "Connection") {
+                ConnectionSettingsSection(
+                    settings: settings,
+                    viewModel: viewModel,
+                    mode: .settings,
+                    onCheckConnection: { viewModel.checkHealth() },
+                    onScanNetwork: startScan,
+                    isScanning: isScanning,
+                    scanResults: scanResults
+                )
+            }
 
-                if !viewModel.serverStatus.isEmpty && viewModel.serverStatus.lowercased() != "ok" && !viewModel.serverStatus.lowercased().hasPrefix("model:") {
-                    Text(viewModel.serverStatus)
-                        .font(.caption)
-                        .foregroundColor(statusColor)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
+            Divider()
 
-                SecureField("Auth Token", text: $settings.authToken)
+            SettingsSection(title: "Model") {
+                ModelSettingsSection(
+                    settings: settings,
+                    viewModel: viewModel,
+                    showsRefresh: true,
+                    onRefreshModels: { viewModel.fetchModels() }
+                )
+            }
 
-                if let error = settings.authTokenStorageError {
-                    Text(error)
-                        .font(.caption)
-                        .foregroundColor(.red)
-                }
+            Divider()
 
-                HStack {
-                    Button("Check Connection") { viewModel.checkHealth() }
-                    Button("Scan Network") { startScan() }
-                        .disabled(isScanning)
-                }
-
-                if viewModel.isChecking {
-                    HStack {
-                        ProgressView().scaleEffect(0.5)
-                        Text("Checking…").font(.caption).foregroundColor(.secondary)
+            SettingsSection(title: "Recording") {
+                VStack(alignment: .leading, spacing: 10) {
+                    SettingsRow(title: "Mode") {
+                        Picker("", selection: $settings.recordingMode) {
+                            Text("Hold to Record").tag("hold")
+                            Text("Toggle Recording").tag("toggle")
+                        }
+                        .labelsHidden()
+                        .settingsControlWidth(250)
                     }
-                }
 
-                if isScanning {
-                    HStack {
-                        ProgressView().scaleEffect(0.5)
-                        Text("Scanning…").font(.caption).foregroundColor(.secondary)
-                    }
-                }
-
-                if !scanResults.isEmpty && !isScanning {
-                    Picker("Found servers", selection: $settings.serverURL) {
-                        ForEach(scanResults) { result in
-                            Text(result.display).tag(result.url)
+                    if !availableInputDevices.isEmpty {
+                        SettingsRow(title: "Microphone") {
+                            Picker("", selection: $settings.selectedInputDeviceUID) {
+                                Text("System Default").tag("")
+                                ForEach(availableInputDevices) { device in
+                                    Text(device.name).tag(device.id)
+                                }
+                            }
+                            .labelsHidden()
+                            .settingsControlWidth(360)
                         }
                     }
-                }
-            } header: {
-                Text("Connection")
-            }
 
-            Section("Model") {
-                Picker("Model", selection: $settings.selectedModel) {
-                    ForEach(viewModel.availableModels, id: \.self) { model in
-                        Text(model).tag(model)
+                    SettingsRow(title: "Shortcut") {
+                        ShortcutRecorderView(name: .record) { _ in
+                            NotificationCenter.default.post(name: .recordShortcutChanged, object: nil)
+                        }
+                        .frame(maxWidth: .infinity)
                     }
                 }
-                .onChange(of: settings.selectedModel) { _, newModel in
-                    guard !viewModel.isSyncingModelSelection else { return }
-                    viewModel.setModel(newModel)
-                }
-
-                Text(ModelCatalog.description(for: settings.selectedModel))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-
-                Button("Refresh Models") { viewModel.fetchModels() }
             }
 
-            Section("Recording") {
-                Picker("Mode", selection: $settings.recordingMode) {
-                    Text("Hold to Record").tag("hold")
-                    Text("Toggle Recording").tag("toggle")
-                }
+            Divider()
 
-                if !availableInputDevices.isEmpty {
-                    Picker("Microphone", selection: $settings.selectedInputDeviceUID) {
-                        Text("System Default").tag("")
-                        ForEach(availableInputDevices) { device in
-                            Text(device.name).tag(device.id)
+            SettingsSection(title: "App") {
+                VStack(alignment: .leading, spacing: 10) {
+                    SettingsRow(title: "") {
+                        Toggle("Launch at Login", isOn: $settings.launchAtLogin)
+                            .onChange(of: settings.launchAtLogin) { _, enabled in
+                                guard !isSyncingLaunchAtLogin else { return }
+                                updateLaunchAtLogin(enabled)
+                            }
+                    }
+
+                    if let error = launchAtLoginError {
+                        SettingsRow(title: "") {
+                            Text(error)
+                                .font(.caption)
+                                .foregroundStyle(.red)
+                                .fixedSize(horizontal: false, vertical: true)
                         }
                     }
-                }
 
-                HStack {
-                    Text("Shortcut")
-                    ShortcutRecorderView(name: .record) { _ in
-                        NotificationCenter.default.post(name: .recordShortcutChanged, object: nil)
+                    SettingsRow(title: "Version") {
+                        Text(AppVersion.displayString)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .textSelection(.enabled)
                     }
                 }
             }
 
-            Section("App") {
-                Toggle("Launch at Login", isOn: $settings.launchAtLogin)
-                    .onChange(of: settings.launchAtLogin) { _, enabled in
-                        guard !isSyncingLaunchAtLogin else { return }
-                        updateLaunchAtLogin(enabled)
-                    }
-
-                if let error = launchAtLoginError {
-                    Text(error)
-                        .font(.caption)
-                        .foregroundStyle(.red)
-                }
-            }
+            Spacer(minLength: 0)
         }
-        .padding()
-        .frame(width: 420)
+        .padding(22)
+        .frame(width: 540)
+        .frame(height: 560, alignment: .topLeading)
         .onAppear {
             viewModel.fetchModels()
             viewModel.checkHealth()
             refreshInputDevices()
-        }
-    }
-
-    private var statusColor: Color {
-        switch viewModel.serverStatus.lowercased() {
-        case "ok": return .green
-        case "loading": return .yellow
-        default: return .red
         }
     }
 

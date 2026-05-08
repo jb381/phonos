@@ -12,11 +12,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Microphone input device selector in Settings: users can now choose a specific microphone from a picker, or leave it at "System Default".
 - `AudioDeviceManager` utility wrapping CoreAudio to enumerate input devices, set the default input device, and query the current default.
 - `AudioRecorder` now temporarily switches to the user-selected input device at recording start and restores the original device on stop.
+- Settings now shows the running app version/build in the App section.
+- `apps/macos/dev-run.sh` for local macOS development: builds a debug app bundle, ejects mounted Phonos DMGs, quits the running app, and launches the fresh build without creating a DMG.
+- `docs/ui-todo.md` with a detailed plan for macOS UI polish and follow-up work.
 - AGENTS.md with conventions, build/test commands, and architecture overview for agent contributors.
 - "Working Rules" section to AGENTS.md (inspect before editing, keep changes small, no commits unless asked).
 
+### Changed
+
+- Replaced the Settings `Form` with a tighter fixed-height, non-scrollable settings pane using a shared aligned layout and fixed label column.
+- Connection status now shows text beside the dot (`Connected`, `Loading model`, or the current error) instead of relying on a lone colored indicator.
+- Settings pickers now hide their internal labels and use stable widths so recording, microphone, shortcut, and model controls align to the same content column.
+- Setup now uses the same connection/model sections as Settings, labels server URL and auth token directly, and shows action-oriented connection status copy.
+- Setup permissions now include a `Recheck` button for Accessibility, hide completed grant actions, and show a wrapping inline warning before Done when setup is incomplete.
+- Menu-bar status labels are now user-facing, success statuses auto-reset after 3 seconds, and the idle status row is hidden.
+- `Setup…` is renamed to `Setup Assistant…` after first run completes, and Settings/Setup Assistant menu items now use aligned SF Symbol icons.
+- Transcript history rows use a smaller 8 pt corner radius, and the `Copy` text button is now a `doc.on.doc` icon button with tooltip.
+
 ### Fixed
 
+- Model selection now keeps the currently selected model visible when the server model list cannot be fetched.
+- Kept generated macOS app bundles writable by the owner so repeated local builds can replace bundled resources cleanly.
+- Normalized leading `v` prefixes out of the app bundle version string while keeping release tags unchanged.
 - Fixed CI job count in AGENTS.md: listed all four jobs (`python`, `e2e`, `server-image`, `swift`) instead of two.
 - Updated Python server commands in AGENTS.md to use `uv run` prefix, matching CI.
 - Updated Code Style ruff command in AGENTS.md to `uv run ruff check .`.

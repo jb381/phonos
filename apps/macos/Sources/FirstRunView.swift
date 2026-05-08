@@ -19,63 +19,77 @@ struct FirstRunView: View {
                     .foregroundStyle(.secondary)
             }
 
-            VStack(alignment: .leading, spacing: 12) {
-                checklistRow(
-                    title: "Microphone",
-                    detail: microphoneGranted ? "Ready" : "Required for recording audio",
-                    isComplete: microphoneGranted
-                ) {
-                    Button("Grant") { requestMicrophone() }
-                        .disabled(microphoneGranted)
-                }
-
-                checklistRow(
-                    title: "Accessibility",
-                    detail: accessibilityGranted ? "Ready" : "Required for automatic paste",
-                    isComplete: accessibilityGranted
-                ) {
-                    Button("Open Settings") { openAccessibilitySettings() }
-                }
-
-                Divider()
-
-                TextField("Server URL", text: $settings.serverURL)
-                SecureField("Auth Token", text: $settings.authToken)
-
-                if let error = settings.authTokenStorageError {
-                    Text(error)
-                        .font(.caption)
-                        .foregroundStyle(.red)
-                }
-
-                HStack {
-                    statusDot
-                    Text(viewModel.serverStatus)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                    Button("Check Connection") { viewModel.checkHealth() }
-                        .disabled(viewModel.isChecking)
-                }
-
-                if !viewModel.availableModels.isEmpty {
-                    Picker("Model", selection: $settings.selectedModel) {
-                        ForEach(viewModel.availableModels, id: \.self) { model in
-                            Text(model).tag(model)
+            SettingsSection(title: "Permissions") {
+                VStack(alignment: .leading, spacing: 12) {
+                    permissionRow(
+                        title: "Microphone",
+                        detail: microphoneGranted ? "Ready" : "Required for recording audio",
+                        isComplete: microphoneGranted
+                    ) {
+                        if !microphoneGranted {
+                            Button("Grant") { requestMicrophone() }
                         }
                     }
-                    .onChange(of: settings.selectedModel) { _, newModel in
-                        guard !viewModel.isSyncingModelSelection else { return }
-                        viewModel.setModel(newModel)
-                    }
 
-                    Text(ModelCatalog.description(for: settings.selectedModel))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    permissionRow(
+                        title: "Accessibility",
+                        detail: accessibilityGranted ? "Ready" : "Required for automatic paste",
+                        isComplete: accessibilityGranted
+                    ) {
+                        if accessibilityGranted {
+                            Button("Recheck") { refreshPermissions() }
+                        } else {
+                            HStack(spacing: 8) {
+                                Button("Open Settings") { openAccessibilitySettings() }
+                                Button("Recheck") { refreshPermissions() }
+                            }
+                        }
+                    }
                 }
             }
 
-            Spacer()
+            Divider()
+
+            SettingsSection(title: "Server") {
+                ConnectionSettingsSection(
+                    settings: settings,
+                    viewModel: viewModel,
+                    mode: .setup,
+                    onCheckConnection: { viewModel.checkHealth() },
+                    onScanNetwork: nil,
+                    isScanning: false,
+                    scanResults: []
+                )
+            }
+
+            if !viewModel.availableModels.isEmpty {
+                Divider()
+
+                SettingsSection(title: "Model") {
+                    ModelSettingsSection(
+                        settings: settings,
+                        viewModel: viewModel,
+                        showsRefresh: false,
+                        onRefreshModels: nil
+                    )
+                }
+            }
+
+            if isSetupIncomplete {
+                HStack(spacing: 8) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.yellow)
+                    Text("You can finish now, but dictation may fail until the remaining items are fixed.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(nil)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(10)
+                .background(.yellow.opacity(0.1), in: RoundedRectangle(cornerRadius: 6))
+            }
+
+            Spacer(minLength: 0)
 
             HStack {
                 Spacer()
@@ -86,20 +100,20 @@ struct FirstRunView: View {
             }
         }
         .padding(22)
-        .frame(width: 460, height: 500)
+        .frame(width: 520)
+        .frame(minHeight: 560)
         .onAppear {
             refreshPermissions()
             viewModel.fetchModels()
+            viewModel.checkHealth()
         }
     }
 
-    private var statusDot: some View {
-        Circle()
-            .fill(viewModel.serverStatus.lowercased() == "ok" ? Color.green : Color.secondary)
-            .frame(width: 8, height: 8)
+    private var isSetupIncomplete: Bool {
+        !microphoneGranted || !accessibilityGranted || viewModel.serverStatus.lowercased() != "ok"
     }
 
-    private func checklistRow<Content: View>(
+    private func permissionRow<Content: View>(
         title: String,
         detail: String,
         isComplete: Bool,
@@ -145,12 +159,14 @@ struct FirstRunView: View {
 
     private func finishSetup() {
         let missingMic = !microphoneGranted
+        let missingAccessibility = !accessibilityGranted
         let missingServer = viewModel.serverStatus.lowercased() != "ok"
-        if missingMic || missingServer {
+        if missingMic || missingAccessibility || missingServer {
             let alert = NSAlert()
             alert.messageText = "Setup Incomplete"
             var issues: [String] = []
             if missingMic { issues.append("microphone permission not granted") }
+            if missingAccessibility { issues.append("Accessibility permission not granted") }
             if missingServer { issues.append("server connection not verified") }
             alert.informativeText = "You are missing: \(issues.joined(separator: " and ")). Continue anyway?"
             alert.alertStyle = .warning

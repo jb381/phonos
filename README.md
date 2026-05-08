@@ -105,9 +105,15 @@ uv run uvicorn phonos_server.main:app --host 0.0.0.0 --port 8765
 **From source:**
 ```bash
 cd apps/macos
+./dev-run.sh                  # fast dev loop: build, quit old app, launch new app
 ./build.sh                    # creates Phonos.dmg and Phonos.app
 open Phonos.dmg               # then drag to Applications
 ```
+
+For day-to-day macOS development, prefer `./dev-run.sh`. It builds a debug app
+bundle at `.build/dev/Phonos.app`, ejects any mounted `Phonos` DMG volumes,
+quits the currently running app, and opens the freshly built one. It avoids the
+installer DMG loop entirely.
 
 Releases are triggered by `git tag vX.Y.Z && git push --tags`. CI builds,
 ad-hoc signs, and publishes a DMG automatically.
@@ -124,6 +130,12 @@ ad-hoc signs, and publishes a DMG automatically.
 > ```
 > The grown-up version of this is Developer ID signing + notarization. It is on
 > the roadmap.
+>
+> macOS does not allow scripts to grant Microphone or Accessibility permissions.
+> The practical development fix is stable signing: set `PHONOS_CODESIGN_IDENTITY`
+> or install/use an Apple Development identity so the first manual grant sticks
+> across rebuilds. Ad-hoc signing changes the app's code requirement often enough
+> that macOS may ask for permissions again.
 
 ───
 

@@ -18,6 +18,22 @@ enum WorkflowStatus: String, CaseIterable {
             return false
         }
     }
+
+    var userFacingTitle: String {
+        switch self {
+        case .idle: return "Ready"
+        case .recording: return "Recording\u{2026}"
+        case .transcribing: return "Transcribing\u{2026}"
+        case .pasting: return "Pasting\u{2026}"
+        case .pasted: return "Pasted"
+        case .copiedToClipboard: return "Copied to Clipboard"
+        case .error: return "Error"
+        }
+    }
+
+    var isSuccess: Bool {
+        self == .pasted || self == .copiedToClipboard
+    }
 }
 
 @MainActor
@@ -28,7 +44,7 @@ final class MenuBarController: NSObject, NSWindowDelegate, HotkeyManagerDelegate
     private let settings = SettingsManager.shared
     private let history = TranscriptHistoryStore.shared
     private let recentMenu = NSMenu()
-    private let workflowStatusItem = NSMenuItem(title: "Status: Idle", action: nil, keyEquivalent: "")
+    private let workflowStatusItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
     private let lastErrorItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
     private var lastPasteTargetBundleID: String?
     private var isProcessing = false
@@ -36,6 +52,9 @@ final class MenuBarController: NSObject, NSWindowDelegate, HotkeyManagerDelegate
     private var recordItem: NSMenuItem!
     private var pasteItem: NSMenuItem!
     private var historyItem: NSMenuItem!
+
+    private var successResetTimer: DispatchSourceTimer?
+    private var lastStatusForReset: WorkflowStatus?
 
     override init() {
         super.init()
@@ -53,6 +72,7 @@ final class MenuBarController: NSObject, NSWindowDelegate, HotkeyManagerDelegate
     deinit {
         NSWorkspace.shared.notificationCenter.removeObserver(self)
         NotificationCenter.default.removeObserver(self)
+        successResetTimer?.cancel()
     }
 
     private func startTrackingPasteTarget() {
@@ -94,6 +114,7 @@ final class MenuBarController: NSObject, NSWindowDelegate, HotkeyManagerDelegate
         let menu = NSMenu()
 
         workflowStatusItem.isEnabled = false
+        workflowStatusItem.isHidden = true
         menu.addItem(workflowStatusItem)
 
         lastErrorItem.isEnabled = false
@@ -111,7 +132,7 @@ final class MenuBarController: NSObject, NSWindowDelegate, HotkeyManagerDelegate
         pasteItem.target = self
         menu.addItem(pasteItem)
 
-        historyItem = NSMenuItem(title: "History...", action: #selector(openHistory), keyEquivalent: "h")
+        historyItem = NSMenuItem(title: "History\u{2026}", action: #selector(openHistory), keyEquivalent: "h")
         historyItem.target = self
         menu.addItem(historyItem)
 
@@ -122,12 +143,14 @@ final class MenuBarController: NSObject, NSWindowDelegate, HotkeyManagerDelegate
 
         menu.addItem(.separator())
 
-        let settingsItem = NSMenuItem(title: "Settings...", action: #selector(openSettings), keyEquivalent: ",")
+        let settingsItem = NSMenuItem(title: "Settings\u{2026}", action: #selector(openSettings), keyEquivalent: ",")
         settingsItem.target = self
+        settingsItem.image = menuSymbol(["gearshape", "gear"], description: "Settings")
         menu.addItem(settingsItem)
 
-        let setupItem = NSMenuItem(title: "Setup...", action: #selector(openSetup), keyEquivalent: "")
+        let setupItem = NSMenuItem(title: setupMenuItemTitle, action: #selector(openSetup), keyEquivalent: "")
         setupItem.target = self
+        setupItem.image = menuSymbol(["checklist", "checkmark.circle"], description: "Setup Assistant")
         menu.addItem(setupItem)
 
         menu.addItem(.separator())
@@ -138,6 +161,20 @@ final class MenuBarController: NSObject, NSWindowDelegate, HotkeyManagerDelegate
         menu.addItem(quitItem)
 
         statusItem?.menu = menu
+    }
+
+    private var setupMenuItemTitle: String {
+        settings.firstRunCompleted ? "Setup Assistant\u{2026}" : "Setup\u{2026}"
+    }
+
+    private func menuSymbol(_ names: [String], description: String) -> NSImage? {
+        for name in names {
+            if let image = NSImage(systemSymbolName: name, accessibilityDescription: description) {
+                image.isTemplate = true
+                return image
+            }
+        }
+        return nil
     }
 
     // MARK: - Hotkey
@@ -234,7 +271,7 @@ final class MenuBarController: NSObject, NSWindowDelegate, HotkeyManagerDelegate
         }
         let message = error.localizedDescription
         if message.contains("Timed out") {
-            showLastError("Timed out. Try a smaller model (Settings → Model) or increase server timeout.")
+            showLastError("Timed out. Try a smaller model (Settings \u{2192} Model) or increase server timeout.")
         } else {
             showLastError(message)
         }
@@ -288,15 +325,46 @@ final class MenuBarController: NSObject, NSWindowDelegate, HotkeyManagerDelegate
 
     @MainActor
     private func updateWorkflowStatus(_ status: WorkflowStatus) {
-        workflowStatusItem.title = "Status: \(status.rawValue)"
+        workflowStatusItem.title = status.userFacingTitle
+        workflowStatusItem.isHidden = status == .idle
+
         let busy = status.isBusy
         if busy != isProcessing {
             isProcessing = busy
             setActionsEnabled(!busy)
         }
-        if status == .idle || status == .pasted || status == .copiedToClipboard {
+
+        if status.isSuccess {
+            cancelSuccessReset()
+            lastStatusForReset = status
+            scheduleSuccessReset(status)
+        }
+
+        if !status.isSuccess {
+            cancelSuccessReset()
+            lastStatusForReset = nil
+        }
+
+        if status == .idle || status.isSuccess {
             hideLastError()
         }
+    }
+
+    private func scheduleSuccessReset(_ status: WorkflowStatus) {
+        let timer = DispatchSource.makeTimerSource(queue: DispatchQueue.main)
+        timer.schedule(deadline: .now() + 3)
+        timer.setEventHandler { [weak self] in
+            guard let self, self.lastStatusForReset == status else { return }
+            self.lastStatusForReset = nil
+            self.updateWorkflowStatus(.idle)
+        }
+        timer.resume()
+        successResetTimer = timer
+    }
+
+    private func cancelSuccessReset() {
+        successResetTimer?.cancel()
+        successResetTimer = nil
     }
 
     @MainActor
@@ -322,7 +390,7 @@ final class MenuBarController: NSObject, NSWindowDelegate, HotkeyManagerDelegate
         DispatchQueue.main.async {
             let alert = NSAlert()
             alert.messageText = "Accessibility Required"
-            alert.informativeText = "Phonos needs Accessibility permission for paste automation. Grant it in System Settings → Privacy & Security → Accessibility."
+            alert.informativeText = "Phonos needs Accessibility permission for paste automation. Grant it in System Settings \u{2192} Privacy & Security \u{2192} Accessibility."
             alert.alertStyle = .warning
             alert.addButton(withTitle: "Open Settings")
             alert.addButton(withTitle: "Later")
@@ -420,8 +488,8 @@ final class MenuBarController: NSObject, NSWindowDelegate, HotkeyManagerDelegate
         }
 
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 420, height: 360),
-            styleMask: [.titled, .closable, .miniaturizable],
+            contentRect: NSRect(x: 0, y: 0, width: 540, height: 560),
+            styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered,
             defer: false
         )
@@ -441,8 +509,8 @@ final class MenuBarController: NSObject, NSWindowDelegate, HotkeyManagerDelegate
         }
 
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 460, height: 500),
-            styleMask: [.titled, .closable, .miniaturizable],
+            contentRect: NSRect(x: 0, y: 0, width: 520, height: 600),
+            styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered,
             defer: false
         )

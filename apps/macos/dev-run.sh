@@ -1,43 +1,50 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 
-VERSION="${PHONOS_VERSION:-$(git describe --tags --always 2>/dev/null || echo "0.0.0")}"
+cd "$(dirname "$0")"
+
+CONFIGURATION="${PHONOS_DEV_CONFIGURATION:-debug}"
+APP_DIR="${PHONOS_DEV_APP_DIR:-$PWD/.build/dev/Phonos.app}"
+BUNDLE_IDENTIFIER="${PHONOS_BUNDLE_IDENTIFIER:-dev.phonos.app}"
+VERSION="${PHONOS_VERSION:-dev}"
 VERSION="${VERSION#v}"
-BUILD="${PHONOS_BUILD:-$(git rev-list --count HEAD 2>/dev/null || echo "0")}"
+BUILD="${PHONOS_BUILD:-$(date +%Y%m%d%H%M%S)}"
 
-echo "=== Building Phonos ${VERSION} (build ${BUILD}) ==="
+echo "=== Building Phonos for development (${CONFIGURATION}) ==="
+swift build -c "$CONFIGURATION"
 
-# Build the binary
-swift build -c release 2>&1
+BUILD_DIR=".build/${CONFIGURATION}"
+BINARY_PATH="${BUILD_DIR}/Phonos"
 
-# Create app bundle (clean slate)
-APP_DIR=".build/Phonos.app"
+if [ ! -x "$BINARY_PATH" ]; then
+    echo "error: expected built binary at ${BINARY_PATH}" >&2
+    exit 1
+fi
+
+echo ""
+echo "=== Creating development app bundle ==="
 if [ -d "$APP_DIR" ]; then
     chmod -R u+w "$APP_DIR" 2>/dev/null || true
 fi
 rm -rf "$APP_DIR"
 mkdir -p "$APP_DIR/Contents/MacOS" "$APP_DIR/Contents/Resources"
 
-# Copy binary
-cp .build/release/Phonos "$APP_DIR/Contents/MacOS/Phonos"
+cp "$BINARY_PATH" "$APP_DIR/Contents/MacOS/Phonos"
 
 # Copy SwiftPM resource bundles into the conventional app resources location.
-find .build -maxdepth 5 -path "*/release/*.bundle" -type d ! -path "*/index-build/*" -print0 |
+find .build -maxdepth 5 -path "*/${CONFIGURATION}/*.bundle" -type d ! -path "*/index-build/*" -print0 |
     while IFS= read -r -d '' bundle; do
         destination="$APP_DIR/Contents/Resources/$(basename "$bundle")"
         rm -rf "$destination"
         ditto "$bundle" "$destination"
     done
 
-# Copy app icon when the generated macOS icon asset is available.
 if [ -f "Assets/AppIcon.icns" ]; then
     cp "Assets/AppIcon.icns" "$APP_DIR/Contents/Resources/AppIcon.icns"
 fi
 
-# Fix permissions
 chmod -R u+rwX,go+rX "$APP_DIR"
 
-# Write Info.plist
 cat > "$APP_DIR/Contents/Info.plist" << PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -46,7 +53,7 @@ cat > "$APP_DIR/Contents/Info.plist" << PLIST
     <key>CFBundleExecutable</key>
     <string>Phonos</string>
     <key>CFBundleIdentifier</key>
-    <string>dev.phonos.app</string>
+    <string>${BUNDLE_IDENTIFIER}</string>
     <key>CFBundleName</key>
     <string>Phonos</string>
     <key>CFBundleIconFile</key>
@@ -61,16 +68,6 @@ cat > "$APP_DIR/Contents/Info.plist" << PLIST
     <true/>
     <key>NSAppleEventsUsageDescription</key>
     <string>Phonos needs Accessibility access for paste automation.</string>
-    <!--
-      App Transport Security (ATS)
-      NSAllowsArbitraryLoads is required because users may configure arbitrary
-      server URLs, including Tailscale IPs (100.x.x.x) and LAN addresses that
-      are not covered by NSAllowsLocalNetworking (which only exempts RFC 1918
-      private ranges and .local domains). NSExceptionDomains cannot be used
-      because the domain/IP is user-configured and not known at build time.
-      All connections are still protected by the optional bearer-token auth
-      layer configured in the Phonos server.
-    -->
     <key>NSAppTransportSecurity</key>
     <dict>
         <key>NSAllowsArbitraryLoads</key>
@@ -82,7 +79,6 @@ cat > "$APP_DIR/Contents/Info.plist" << PLIST
 </plist>
 PLIST
 
-# Determine signing identity
 SIGN_IDENTITY="${PHONOS_CODESIGN_IDENTITY:-}"
 if [ -z "$SIGN_IDENTITY" ]; then
     SIGN_IDENTITY=$(security find-identity -v -p codesigning | awk '/Phonos Local Development|Apple Development|Developer ID Application|Mac Developer/ { print $2; exit }')
@@ -93,27 +89,44 @@ if [ -n "$SIGN_IDENTITY" ]; then
 else
     SIGN_IDENTITY="-"
     echo "Warning: no stable code-signing identity found; using ad-hoc signing."
-    echo "Accessibility permission may need to be re-granted after each rebuild."
+    echo "Microphone and Accessibility permissions may need to be re-granted after rebuilds."
 fi
 
-# Sign the app (no files outside Contents/, so codesign is happy)
 codesign --force --deep --sign "$SIGN_IDENTITY" "$APP_DIR"
 
-# Create DMG
 echo ""
-echo "=== Creating DMG ==="
-DMG_DIR=$(mktemp -d)
-cp -R "$APP_DIR" "$DMG_DIR/"
-ln -s /Applications "$DMG_DIR/Applications"
-DMG_NAME="Phonos.dmg"
-hdiutil create -volname "Phonos" -srcfolder "$DMG_DIR" -ov -format UDZO -fs APFS "$DMG_NAME" 2>&1
-rm -rf "$DMG_DIR"
+echo "=== Cleaning up mounted Phonos DMGs ==="
+if [ "${PHONOS_DEV_EJECT_DMG:-1}" = "1" ]; then
+    shopt -s nullglob
+    for volume in /Volumes/Phonos*; do
+        hdiutil detach "$volume" >/dev/null 2>&1 || true
+    done
+    shopt -u nullglob
+else
+    echo "Skipping DMG eject because PHONOS_DEV_EJECT_DMG=0."
+fi
 
 echo ""
-echo "=== Build complete ==="
-echo "App at:  $APP_DIR"
-echo "DMG at:  $DMG_NAME"
+if [ "${PHONOS_DEV_LAUNCH:-1}" = "1" ]; then
+    echo "=== Restarting Phonos ==="
+    if pgrep -x Phonos >/dev/null; then
+        osascript -e "tell application id \"${BUNDLE_IDENTIFIER}\" to quit" >/dev/null 2>&1 || true
+        for _ in {1..20}; do
+            pgrep -x Phonos >/dev/null || break
+            sleep 0.1
+        done
+        if pgrep -x Phonos >/dev/null; then
+            pkill -x Phonos || true
+        fi
+    fi
+    open "$APP_DIR"
+else
+    echo "Skipping app restart because PHONOS_DEV_LAUNCH=0."
+fi
+
 echo ""
-echo "First launch will prompt for permissions."
-echo "If not, grant manually: open Phonos.dmg"
-echo "Then drag Phonos.app into the Applications folder."
+echo "=== Development run complete ==="
+echo "App at: $APP_DIR"
+echo ""
+echo "macOS does not allow scripts to grant Microphone or Accessibility permissions."
+echo "Use a stable signing identity so the first manual grant sticks across rebuilds."
