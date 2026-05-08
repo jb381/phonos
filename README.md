@@ -1,5 +1,4 @@
 <div align="center">
-
 <img src="apps/macos/Assets/Brand/PhonosLogoTransparent.png" width="400" alt="Phonos logo">
 
 # 🎙️🗣️🔪 φόνος — phonos
