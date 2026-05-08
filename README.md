@@ -1,5 +1,6 @@
 <div align="center">
-<img src="apps/macos/Assets/Brand/PhonosLogoTransparent.png" width="400" alt="Phonos logo">
+
+
 # 🎙️🗣️🔪 φόνος — phonos
 
 *phónos — voice, sound, speech... but also murder, slaughter, homicide (yes, really)*
