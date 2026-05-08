@@ -15,6 +15,7 @@ final class SettingsManager: ObservableObject {
     @AppStorage("firstRunCompleted") var firstRunCompleted = false
     @AppStorage("launchAtLogin") var launchAtLogin = false
     @AppStorage("keychainMigrationCompleted") var keychainMigrationCompleted = false
+    @AppStorage("selectedInputDeviceUID") var selectedInputDeviceUID = ""
     @Published var authToken = "" {
         didSet {
             debouncedKeychainWrite()

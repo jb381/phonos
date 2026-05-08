@@ -20,6 +20,7 @@ actor AudioRecorder {
     private var outputFile: AVAudioFile?
     private var outputURL: URL?
     private var writeErrorMessage: String?
+    private var previousDefaultInputUID: String?
 
     var isRecording: Bool {
         engine?.isRunning ?? false
@@ -54,6 +55,14 @@ actor AudioRecorder {
         let outputFile = try AVAudioFile(forWriting: url, settings: format.settings)
         self.outputFile = outputFile
 
+        let selectedUID = SettingsManager.shared.selectedInputDeviceUID
+        if !selectedUID.isEmpty {
+            previousDefaultInputUID = AudioDeviceManager.currentDefaultInputDeviceUID()
+            if previousDefaultInputUID != selectedUID {
+                AudioDeviceManager.setDefaultInputDevice(uid: selectedUID)
+            }
+        }
+
         inputNode.installTap(onBus: 0, bufferSize: 4096, format: format) { buffer, _ in
             do {
                 try outputFile.write(from: buffer)
@@ -82,6 +91,12 @@ actor AudioRecorder {
         engine?.stop()
         engine = nil
         outputFile = nil
+
+        if let previousUID = previousDefaultInputUID {
+            AudioDeviceManager.setDefaultInputDevice(uid: previousUID)
+            previousDefaultInputUID = nil
+        }
+
         if let writeErrorMessage {
             self.writeErrorMessage = nil
             throw RecorderError.writeFailed(writeErrorMessage)

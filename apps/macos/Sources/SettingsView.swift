@@ -8,6 +8,7 @@ struct SettingsView: View {
     @State private var scanResults: [ScanResult] = []
     @State private var isSyncingLaunchAtLogin = false
     @State private var launchAtLoginError: String?
+    @State private var availableInputDevices: [AudioDevice] = []
 
     var body: some View {
         Form {
@@ -89,6 +90,15 @@ struct SettingsView: View {
                     Text("Toggle Recording").tag("toggle")
                 }
 
+                if !availableInputDevices.isEmpty {
+                    Picker("Microphone", selection: $settings.selectedInputDeviceUID) {
+                        Text("System Default").tag("")
+                        ForEach(availableInputDevices) { device in
+                            Text(device.name).tag(device.id)
+                        }
+                    }
+                }
+
                 HStack {
                     Text("Shortcut")
                     ShortcutRecorderView(name: .record) { _ in
@@ -116,6 +126,7 @@ struct SettingsView: View {
         .onAppear {
             viewModel.fetchModels()
             viewModel.checkHealth()
+            refreshInputDevices()
         }
     }
 
@@ -138,6 +149,10 @@ struct SettingsView: View {
                 isScanning = false
             }
         }
+    }
+
+    private func refreshInputDevices() {
+        availableInputDevices = AudioDeviceManager.availableInputDevices()
     }
 
     private func updateLaunchAtLogin(_ enabled: Bool) {
