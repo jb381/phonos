@@ -16,11 +16,16 @@ enum RecorderError: LocalizedError {
 }
 
 actor AudioRecorder {
+    let audioDeviceClient: AudioDeviceClient
     private var engine: AVAudioEngine?
     private var outputFile: AVAudioFile?
     private var outputURL: URL?
     private var writeErrorMessage: String?
     private var previousDefaultInputUID: String?
+
+    init(audioDeviceClient: AudioDeviceClient = .live) {
+        self.audioDeviceClient = audioDeviceClient
+    }
 
     var isRecording: Bool {
         engine?.isRunning ?? false
@@ -42,6 +47,8 @@ actor AudioRecorder {
         let tempDir = FileManager.default.temporaryDirectory
         let url = tempDir.appendingPathComponent("phonos_recording_\(UUID().uuidString).wav")
         writeErrorMessage = nil
+        outputURL = nil
+        previousDefaultInputUID = nil
 
         let resourceValues = try? tempDir.resourceValues(forKeys: [.volumeAvailableCapacityKey])
         if let available = resourceValues?.volumeAvailableCapacity, available < 100 * 1024 * 1024 {
@@ -50,6 +57,14 @@ actor AudioRecorder {
 
         let engine = AVAudioEngine()
         let inputNode = engine.inputNode
+        var didInstallTap = false
+        var startupSucceeded = false
+
+        defer {
+            if !startupSucceeded {
+                rollbackStartup(didInstallTap: didInstallTap, engine: engine, fileURL: url)
+            }
+        }
 
         let format = inputNode.outputFormat(forBus: 0)
         let outputFile = try AVAudioFile(forWriting: url, settings: format.settings)
@@ -57,9 +72,9 @@ actor AudioRecorder {
 
         let selectedUID = SettingsManager.shared.selectedInputDeviceUID
         if !selectedUID.isEmpty {
-            previousDefaultInputUID = AudioDeviceManager.currentDefaultInputDeviceUID()
+            previousDefaultInputUID = audioDeviceClient.currentDefaultInputDeviceUID()
             if previousDefaultInputUID != selectedUID {
-                AudioDeviceManager.setDefaultInputDevice(uid: selectedUID)
+                _ = audioDeviceClient.setDefaultInputDevice(selectedUID)
             }
         }
 
@@ -72,6 +87,7 @@ actor AudioRecorder {
                 }
             }
         }
+        didInstallTap = true
 
         engine.prepare()
 
@@ -83,6 +99,7 @@ actor AudioRecorder {
 
         self.engine = engine
         self.outputURL = url
+        startupSucceeded = true
         return url
     }
 
@@ -93,7 +110,7 @@ actor AudioRecorder {
         outputFile = nil
 
         if let previousUID = previousDefaultInputUID {
-            AudioDeviceManager.setDefaultInputDevice(uid: previousUID)
+            _ = audioDeviceClient.setDefaultInputDevice(previousUID)
             previousDefaultInputUID = nil
         }
 
@@ -105,6 +122,31 @@ actor AudioRecorder {
 
     func getOutputURL() -> URL? {
         outputURL
+    }
+
+    func rollbackStartup(didInstallTap: Bool, engine: AVAudioEngine, fileURL: URL) {
+        if didInstallTap {
+            engine.inputNode.removeTap(onBus: 0)
+        }
+        engine.stop()
+        self.engine = nil
+        self.outputFile = nil
+        self.outputURL = nil
+
+        if let previousUID = previousDefaultInputUID {
+            _ = audioDeviceClient.setDefaultInputDevice(previousUID)
+            previousDefaultInputUID = nil
+        }
+
+        try? FileManager.default.removeItem(at: fileURL)
+    }
+
+    func setPreviousDefaultInputUIDForTest(_ uid: String?) {
+        previousDefaultInputUID = uid
+    }
+
+    func getPreviousDefaultInputUIDForTest() -> String? {
+        previousDefaultInputUID
     }
 
     private func recordWriteFailure(_ message: String) async {

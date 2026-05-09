@@ -6,6 +6,18 @@ struct AudioDevice: Identifiable, Hashable {
     let name: String
 }
 
+struct AudioDeviceClient: Sendable {
+    var availableInputDevices: @Sendable () -> [AudioDevice]
+    var setDefaultInputDevice: @Sendable (String) -> Bool
+    var currentDefaultInputDeviceUID: @Sendable () -> String?
+
+    static let live = AudioDeviceClient(
+        availableInputDevices: { AudioDeviceManager.availableInputDevices() },
+        setDefaultInputDevice: { AudioDeviceManager.setDefaultInputDevice(uid: $0) },
+        currentDefaultInputDeviceUID: { AudioDeviceManager.currentDefaultInputDeviceUID() }
+    )
+}
+
 enum AudioDeviceManager {
     static func availableInputDevices() -> [AudioDevice] {
         var propertyAddress = AudioObjectPropertyAddress(

@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.1] - 2026-05-09 🩹
+
+### Fixed
+
+- Restored the previously selected macOS system input device when recording startup fails, and added startup rollback cleanup for taps/temp files.
+- Guarded server request handling against an uninitialized model manager so endpoints return a clean `503` instead of crashing.
+
+### Added
+
+- Added server regression tests for uninitialized-manager `503` behavior on `/models`, `/models/active`, `PUT /models/active`, and `/transcribe`.
+- Added macOS `AudioRecorder` rollback tests and a minimal `AudioDeviceClient` test seam for deterministic startup/cleanup coverage.
+
+---
+
 ## [1.4.0] - 2026-05-08 🎙️
 
 ### Added

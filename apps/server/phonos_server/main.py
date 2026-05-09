@@ -21,6 +21,12 @@ manager: ModelManager | None = None
 _transcribe_semaphore = asyncio.Semaphore(1)
 
 
+def _require_manager() -> ModelManager:
+    if manager is None:
+        raise HTTPException(status_code=503, detail="Model manager is not initialized")
+    return manager
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global manager
@@ -36,40 +42,45 @@ app = FastAPI(title="Phonos", version="0.1.0", lifespan=lifespan)
 
 @app.middleware("http")
 async def count_requests(request, call_next):
-    manager.increment_request_count()
+    if manager is not None:
+        manager.increment_request_count()
     return await call_next(request)
 
 
 @app.get("/health")
 def health():
+    active_manager = _require_manager()
+    settings = get_settings()
     return {
-        "status": "ok" if manager.status == "loaded" else manager.status,
-        "model": manager.active_model,
-        "worker_alive": manager.worker_alive,
-        "last_error": manager.last_error,
-        "last_load_seconds": manager.last_load_seconds,
-        "uptime_seconds": manager.uptime_seconds,
-        "request_count": manager.request_count,
-        "transcription_count": manager.transcription_count,
-        "last_processing_seconds": manager.last_processing_seconds,
-        "device": get_settings().device,
-        "compute_type": get_settings().compute_type,
+        "status": "ok" if active_manager.status == "loaded" else active_manager.status,
+        "model": active_manager.active_model,
+        "worker_alive": active_manager.worker_alive,
+        "last_error": active_manager.last_error,
+        "last_load_seconds": active_manager.last_load_seconds,
+        "uptime_seconds": active_manager.uptime_seconds,
+        "request_count": active_manager.request_count,
+        "transcription_count": active_manager.transcription_count,
+        "last_processing_seconds": active_manager.last_processing_seconds,
+        "device": settings.device,
+        "compute_type": settings.compute_type,
     }
 
 
 @app.get("/models")
 def list_models(settings: Settings = Depends(get_settings)):
+    active_manager = _require_manager()
     return {
         "models": settings.model_list(),
-        "active": manager.active_model,
+        "active": active_manager.active_model,
     }
 
 
 @app.get("/models/active")
 def get_active_model():
+    active_manager = _require_manager()
     return {
-        "model": manager.active_model,
-        "status": manager.status,
+        "model": active_manager.active_model,
+        "status": active_manager.status,
     }
 
 
@@ -79,16 +90,17 @@ def set_active_model(
     _=Depends(require_auth),
     settings: Settings = Depends(get_settings),
 ):
+    active_manager = _require_manager()
     if body.model not in settings.model_list():
         raise HTTPException(
             status_code=400,
             detail=f"Unknown model: {body.model}. Available: {settings.model_list()}",
         )
     try:
-        manager.load(body.model)
+        active_manager.load(body.model)
     except RuntimeError as e:
         raise HTTPException(status_code=503, detail=str(e)) from e
-    return {"model": manager.active_model, "status": manager.status}
+    return {"model": active_manager.active_model, "status": active_manager.status}
 
 
 @app.post("/transcribe")
@@ -97,5 +109,6 @@ async def transcribe(
     _=Depends(require_auth),
     settings: Settings = Depends(get_settings),
 ):
+    active_manager = _require_manager()
     async with _transcribe_semaphore:
-        return await transcribe_audio(file, manager, settings)
+        return await transcribe_audio(file, active_manager, settings)

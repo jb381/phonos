@@ -238,3 +238,57 @@ class TestAuth:
         """Health endpoint should not require auth."""
         response = client_with_auth.get("/health")
         assert response.status_code == 200
+
+
+class TestStartupSafety:
+    def test_health_returns_503_when_manager_uninitialized(self, client, monkeypatch):
+        import phonos_server.main as main_mod
+
+        monkeypatch.setattr(main_mod, "manager", None)
+        response = client.get("/health")
+        assert response.status_code == 503
+        assert response.json()["detail"] == "Model manager is not initialized"
+
+    def test_models_returns_503_when_manager_uninitialized(self, client, monkeypatch):
+        import phonos_server.main as main_mod
+
+        monkeypatch.setattr(main_mod, "manager", None)
+        response = client.get("/models")
+        assert response.status_code == 503
+        assert response.json()["detail"] == "Model manager is not initialized"
+
+    def test_active_model_returns_503_when_manager_uninitialized(self, client, monkeypatch):
+        import phonos_server.main as main_mod
+
+        monkeypatch.setattr(main_mod, "manager", None)
+        response = client.get("/models/active")
+        assert response.status_code == 503
+        assert response.json()["detail"] == "Model manager is not initialized"
+
+    def test_set_active_model_returns_503_when_manager_uninitialized(
+        self, client_with_auth, auth_headers, monkeypatch
+    ):
+        import phonos_server.main as main_mod
+
+        monkeypatch.setattr(main_mod, "manager", None)
+        response = client_with_auth.put(
+            "/models/active",
+            json={"model": "tiny.en"},
+            headers=auth_headers,
+        )
+        assert response.status_code == 503
+        assert response.json()["detail"] == "Model manager is not initialized"
+
+    def test_transcribe_returns_503_when_manager_uninitialized(
+        self, client_with_auth, auth_headers, sample_wav, monkeypatch
+    ):
+        import phonos_server.main as main_mod
+
+        monkeypatch.setattr(main_mod, "manager", None)
+        response = client_with_auth.post(
+            "/transcribe",
+            files={"file": ("test.wav", sample_wav, "audio/wav")},
+            headers=auth_headers,
+        )
+        assert response.status_code == 503
+        assert response.json()["detail"] == "Model manager is not initialized"
