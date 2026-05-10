@@ -25,6 +25,7 @@ protocol RecordingSessionDelegate: AnyObject {
 actor RecordingSession {
     private let recorder = AudioRecorder()
     private let paster = PasteEngine()
+    private let server = ServerClient()
     private var isRecording = false
     private var isProcessing = false
 
@@ -35,6 +36,15 @@ actor RecordingSession {
     }
 
     var currentStatus: WorkflowStatus = .idle
+
+    func cancel() async {
+        if isRecording {
+            try? await recorder.stopRecording()
+            isRecording = false
+        }
+        isProcessing = false
+        await updateStatus(.idle)
+    }
 
     func toggleRecording(pasteTargetBundleID: String?) async {
         if isRecording {
@@ -83,7 +93,7 @@ actor RecordingSession {
         }
 
         do {
-            let result = try await ServerClient().transcribe(fileURL: captureURL)
+            let result = try await server.transcribe(fileURL: captureURL)
             await delegate?.recordingSession(self, didReceive: result)
 
             guard !result.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {

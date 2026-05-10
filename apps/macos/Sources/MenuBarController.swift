@@ -1,6 +1,7 @@
 import Cocoa
 import Combine
 import SwiftUI
+import UserNotifications
 
 enum WorkflowStatus: String, CaseIterable {
     case idle = "Idle"
@@ -35,6 +36,15 @@ enum WorkflowStatus: String, CaseIterable {
     var isSuccess: Bool {
         self == .pasted || self == .copiedToClipboard
     }
+
+    var notificationTitle: String {
+        switch self {
+        case .pasted: return "Transcript pasted"
+        case .copiedToClipboard: return "Copied to clipboard"
+        case .error: return "Transcription failed"
+        default: return userFacingTitle
+        }
+    }
 }
 
 @MainActor
@@ -53,6 +63,7 @@ final class MenuBarController: NSObject, NSWindowDelegate, HotkeyManagerDelegate
     private var recordItem: NSMenuItem!
     private var pasteItem: NSMenuItem!
     private var historyItem: NSMenuItem!
+    private var cancelItem: NSMenuItem!
 
     private var successResetTimer: DispatchSourceTimer?
     private var lastStatusForReset: WorkflowStatus?
@@ -131,6 +142,11 @@ final class MenuBarController: NSObject, NSWindowDelegate, HotkeyManagerDelegate
         recordItem = NSMenuItem(title: "Start Recording", action: #selector(toggleRecording), keyEquivalent: "r")
         recordItem.target = self
         menu.addItem(recordItem)
+
+        cancelItem = NSMenuItem(title: "Cancel", action: #selector(cancelTranscription), keyEquivalent: "")
+        cancelItem.target = self
+        cancelItem.isHidden = true
+        menu.addItem(cancelItem)
 
         pasteItem = NSMenuItem(title: "Paste Last Transcript", action: #selector(pasteLast), keyEquivalent: "v")
         pasteItem.keyEquivalentModifierMask = [.command, .shift]
@@ -262,6 +278,12 @@ final class MenuBarController: NSObject, NSWindowDelegate, HotkeyManagerDelegate
         }
     }
 
+    @objc private func cancelTranscription() {
+        Task {
+            await session.cancel()
+        }
+    }
+
     // MARK: - RecordingSessionDelegate
 
     func recordingSession(_ session: RecordingSession, didUpdate status: WorkflowStatus) {
@@ -348,10 +370,13 @@ final class MenuBarController: NSObject, NSWindowDelegate, HotkeyManagerDelegate
             setActionsEnabled(!busy)
         }
 
-        if status.isSuccess {
+        cancelItem.isHidden = !status.isBusy
+
+        if status.isSuccess || status == .error {
             cancelSuccessReset()
             lastStatusForReset = status
             scheduleSuccessReset(status)
+            showNotification(title: status.notificationTitle)
         }
 
         if !status.isSuccess {
@@ -386,6 +411,24 @@ final class MenuBarController: NSObject, NSWindowDelegate, HotkeyManagerDelegate
         recordItem?.isEnabled = enabled
         pasteItem?.isEnabled = enabled
         historyItem?.isEnabled = enabled
+    }
+
+    private func showNotification(title: String, subtitle: String? = nil) {
+        let center = UNUserNotificationCenter.current()
+        center.requestAuthorization(options: [.alert, .sound]) { granted, _ in
+            guard granted else { return }
+            let content = UNMutableNotificationContent()
+            content.title = title
+            if let subtitle = subtitle {
+                content.subtitle = subtitle
+            }
+            let request = UNNotificationRequest(
+                identifier: UUID().uuidString,
+                content: content,
+                trigger: nil
+            )
+            center.add(request)
+        }
     }
 
     @MainActor

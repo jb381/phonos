@@ -70,6 +70,8 @@ actor ServerClient {
     private let authToken: () -> String
     private let session: URLSession
 
+    private var _activeTask: Task<TranscriptionResponse, Error>?
+
     init() {
         let settings = SettingsManager.shared
         self.baseURL = settings.baseURL
@@ -84,6 +86,63 @@ actor ServerClient {
         self.baseURL = baseURL.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
         self.authToken = authToken
         self.session = session
+    }
+
+    func cancelTranscription() {
+        _activeTask?.cancel()
+    }
+
+    func transcribe(fileURL: URL) async throws -> TranscriptionResponse {
+        guard let url = URL(string: "\(baseURL)/transcribe") else {
+            throw ServerError.connectionFailed("Invalid URL")
+        }
+
+        let boundary = UUID().uuidString
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        req.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+        authHeader(for: &req)
+
+        let filename = fileURL.lastPathComponent
+        let preamble = "--\(boundary)\r\n" +
+            "Content-Disposition: form-data; name=\"file\"; filename=\"\(filename)\"\r\n" +
+            "Content-Type: audio/wav\r\n\r\n"
+        let postamble = "\r\n--\(boundary)--\r\n"
+
+        let tmpURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("phonos_upload_\(UUID().uuidString).tmp")
+        defer { try? FileManager.default.removeItem(at: tmpURL) }
+
+        FileManager.default.createFile(atPath: tmpURL.path, contents: nil, attributes: nil)
+        let outHandle = try FileHandle(forWritingTo: tmpURL)
+        defer { try? outHandle.close() }
+        try outHandle.write(contentsOf: preamble.data(using: .utf8)!)
+
+        let inHandle = try FileHandle(forReadingFrom: fileURL)
+        defer { try? inHandle.close() }
+        while let chunk = try inHandle.read(upToCount: 64 * 1024), !chunk.isEmpty {
+            try outHandle.write(contentsOf: chunk)
+        }
+        try outHandle.write(contentsOf: postamble.data(using: .utf8)!)
+
+        let task = Task<TranscriptionResponse, Error> {
+            do {
+                let (data, response) = try await session.upload(for: req, fromFile: tmpURL)
+                let _ = try handleResponse(data: data, response: response)
+                return try JSONDecoder().decode(TranscriptionResponse.self, from: data)
+            } catch let e as ServerError {
+                throw e
+            } catch {
+                throw ServerError.connectionFailed(error.localizedDescription)
+            }
+        }
+        _activeTask = task
+
+        do {
+            return try await task.value
+        } catch is CancellationError {
+            throw ServerError.connectionFailed("Transcription cancelled")
+        }
     }
 
     private func authHeader(for request: inout URLRequest) {
@@ -148,51 +207,5 @@ actor ServerClient {
         let body = try JSONEncoder().encode(SetModelRequest(model: model))
         let data = try await request("/models/active", method: "PUT", body: body)
         return try JSONDecoder().decode(ActiveModelResponse.self, from: data)
-    }
-
-    func transcribe(fileURL: URL) async throws -> TranscriptionResponse {
-        guard let url = URL(string: "\(baseURL)/transcribe") else {
-            throw ServerError.connectionFailed("Invalid URL")
-        }
-
-        let boundary = UUID().uuidString
-        var req = URLRequest(url: url)
-        req.httpMethod = "POST"
-        req.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
-        authHeader(for: &req)
-
-        let filename = fileURL.lastPathComponent
-        let preamble = "--\(boundary)\r\n" +
-            "Content-Disposition: form-data; name=\"file\"; filename=\"\(filename)\"\r\n" +
-            "Content-Type: audio/wav\r\n\r\n"
-        let postamble = "\r\n--\(boundary)--\r\n"
-
-        // Write the multipart body to a temp file by streaming the audio file
-        // in chunks so memory usage stays bounded regardless of recording length.
-        let tmpURL = FileManager.default.temporaryDirectory
-            .appendingPathComponent("phonos_upload_\(UUID().uuidString).tmp")
-        defer { try? FileManager.default.removeItem(at: tmpURL) }
-
-        FileManager.default.createFile(atPath: tmpURL.path, contents: nil, attributes: nil)
-        let outHandle = try FileHandle(forWritingTo: tmpURL)
-        defer { try? outHandle.close() }
-        try outHandle.write(contentsOf: preamble.data(using: .utf8)!)
-
-        let inHandle = try FileHandle(forReadingFrom: fileURL)
-        defer { try? inHandle.close() }
-        while let chunk = try inHandle.read(upToCount: 64 * 1024), !chunk.isEmpty {
-            try outHandle.write(contentsOf: chunk)
-        }
-        try outHandle.write(contentsOf: postamble.data(using: .utf8)!)
-
-        do {
-            let (data, response) = try await session.upload(for: req, fromFile: tmpURL)
-            let _ = try handleResponse(data: data, response: response)
-            return try JSONDecoder().decode(TranscriptionResponse.self, from: data)
-        } catch let e as ServerError {
-            throw e
-        } catch {
-            throw ServerError.connectionFailed(error.localizedDescription)
-        }
     }
 }

@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Search and filter controls in the macOS history window (free-text search plus model/language filters with reset state).
 - Settings toggle to enable or disable local history persistence (`Save Transcription History`), enabled by default.
 - New Swift tests for the history persistence layer (`TranscriptHistoryStoreTests`) covering database ordering, clearing, persistence gating, and toggle behavior.
+- Menu-bar notifications for transcription success and failure (auto-dismiss after 3 seconds).
+- Transcription cancellation from the menu: a "Cancel" menu item appears during active recording or transcription to interrupt the workflow.
 
 ### Changed
 
