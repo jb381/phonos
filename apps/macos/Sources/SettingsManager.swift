@@ -14,6 +14,7 @@ final class SettingsManager: ObservableObject {
     @AppStorage("selectedModel") var selectedModel = "base.en"
     @AppStorage("firstRunCompleted") var firstRunCompleted = false
     @AppStorage("launchAtLogin") var launchAtLogin = false
+    @AppStorage("historyEnabled") var historyEnabled = true
     @AppStorage("keychainMigrationCompleted") var keychainMigrationCompleted = false
     @AppStorage("selectedInputDeviceUID") var selectedInputDeviceUID = ""
     @Published var authToken = "" {

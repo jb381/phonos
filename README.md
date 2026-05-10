@@ -148,7 +148,7 @@ ad-hoc signs, and publishes a DMG automatically.
 - 🧯 Clipboard fallback when Accessibility permission is not granted
 - 🛠️ First-run setup for permissions and server connection
 - 🔄 Model selector with live switching from the server
-- 📜 Recent transcript history in the menu bar
+- 📜 Persistent transcript history in the menu bar (SQLite, local to your Mac, searchable by text/model/language)
 - 🔐 Auth token stored in macOS Keychain
 
 ───
@@ -203,7 +203,7 @@ Docker Compose binds to `127.0.0.1` by default. For remote access, set `PHONOS_B
 - Set `PHONOS_AUTH_TOKEN` before binding the server to a LAN or private network interface.
 - The macOS auth token is stored in Keychain.
 - Temporary client recording files are removed after each transcription flow completes.
-- Recent transcript history is session-only in the current app.
+- Transcript history is stored locally in a SQLite database (`~/Library/Application Support/Phonos/history.sqlite`) and can be cleared or disabled in Settings.
 - Server logs include request metadata and transcript text for debugging; run the server only where those logs are acceptable.
 
 ## ⚠️ Current limitations
@@ -212,7 +212,6 @@ Docker Compose binds to `127.0.0.1` by default. For remote access, set `PHONOS_B
 - Phonos is intended for localhost, LAN, or private networks such as Tailscale. Do not expose the server directly to the public internet.
 - Clipboard restoration is best-effort for complex clipboard contents, though normal text clipboard restore is supported.
 - Keychain integration tests are manual because unsigned test binaries can trigger macOS permission prompts.
-- Persistent transcript history is not implemented; history is intentionally session-only for now.
 
 ───
 

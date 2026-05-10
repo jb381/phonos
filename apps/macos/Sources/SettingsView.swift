@@ -82,6 +82,20 @@ struct SettingsView: View {
                             }
                     }
 
+                    SettingsRow(title: "") {
+                        Toggle("Save Transcription History", isOn: $settings.historyEnabled)
+                            .onChange(of: settings.historyEnabled) { _, enabled in
+                                TranscriptHistoryStore.shared.setPersistenceEnabled(enabled)
+                            }
+                    }
+
+                    SettingsRow(title: "") {
+                        Text("Store transcript history locally in a SQLite database on this Mac.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+
                     if let error = launchAtLoginError {
                         SettingsRow(title: "") {
                             Text(error)
@@ -104,7 +118,7 @@ struct SettingsView: View {
         }
         .padding(22)
         .frame(width: 540)
-        .frame(height: 560, alignment: .topLeading)
+        .frame(height: 620, alignment: .topLeading)
         .onAppear {
             viewModel.fetchModels()
             viewModel.checkHealth()

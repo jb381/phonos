@@ -1,4 +1,5 @@
 import Cocoa
+import Combine
 import SwiftUI
 
 enum WorkflowStatus: String, CaseIterable {
@@ -55,10 +56,14 @@ final class MenuBarController: NSObject, NSWindowDelegate, HotkeyManagerDelegate
 
     private var successResetTimer: DispatchSourceTimer?
     private var lastStatusForReset: WorkflowStatus?
+    private var historyEntriesObserver: AnyCancellable?
 
     override init() {
         super.init()
         Task { await session.setDelegate(self) }
+        historyEntriesObserver = history.$entries.sink { [weak self] _ in
+            self?.refreshRecentMenu()
+        }
         startTrackingPasteTarget()
         setupMenuBar()
         setupHotkey()
@@ -73,6 +78,7 @@ final class MenuBarController: NSObject, NSWindowDelegate, HotkeyManagerDelegate
         NSWorkspace.shared.notificationCenter.removeObserver(self)
         NotificationCenter.default.removeObserver(self)
         successResetTimer?.cancel()
+        historyEntriesObserver?.cancel()
     }
 
     private func startTrackingPasteTarget() {
@@ -269,10 +275,9 @@ final class MenuBarController: NSObject, NSWindowDelegate, HotkeyManagerDelegate
         }
     }
 
-    func recordingSession(_ session: RecordingSession, didReceive transcript: String) {
-        lastTranscript = transcript
-        history.add(transcript)
-        refreshRecentMenu()
+    func recordingSession(_ session: RecordingSession, didReceive response: TranscriptionResponse) {
+        lastTranscript = response.text
+        history.add(response)
     }
 
     func recordingSession(_ session: RecordingSession, didFailWith error: Error) {
@@ -446,6 +451,13 @@ final class MenuBarController: NSObject, NSWindowDelegate, HotkeyManagerDelegate
     @MainActor
     private func refreshRecentMenu() {
         recentMenu.removeAllItems()
+
+        if !history.historyEnabled {
+            let item = NSMenuItem(title: "History disabled in Settings", action: nil, keyEquivalent: "")
+            item.isEnabled = false
+            recentMenu.addItem(item)
+            return
+        }
 
         if history.entries.isEmpty {
             let item = NSMenuItem(title: "No transcripts yet", action: nil, keyEquivalent: "")

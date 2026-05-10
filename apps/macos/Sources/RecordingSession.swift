@@ -18,7 +18,7 @@ enum RecordingSessionError: LocalizedError {
 @MainActor
 protocol RecordingSessionDelegate: AnyObject {
     func recordingSession(_ session: RecordingSession, didUpdate status: WorkflowStatus)
-    func recordingSession(_ session: RecordingSession, didReceive transcript: String)
+    func recordingSession(_ session: RecordingSession, didReceive response: TranscriptionResponse)
     func recordingSession(_ session: RecordingSession, didFailWith error: Error)
 }
 
@@ -84,7 +84,7 @@ actor RecordingSession {
 
         do {
             let result = try await ServerClient().transcribe(fileURL: captureURL)
-            await delegate?.recordingSession(self, didReceive: result.text)
+            await delegate?.recordingSession(self, didReceive: result)
 
             guard !result.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
                 await updateStatus(.idle)

@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0] - 2026-05-10 💾
+
+### Added
+
+- Persistent transcript history on macOS backed by a local SQLite database (`~/Library/Application Support/Phonos/history.sqlite`) using GRDB.
+- New transcript metadata persistence and display: model, language, audio duration, processing time, and timestamp.
+- Search and filter controls in the macOS history window (free-text search plus model/language filters with reset state).
+- Settings toggle to enable or disable local history persistence (`Save Transcription History`), enabled by default.
+- New Swift tests for the history persistence layer (`TranscriptHistoryStoreTests`) covering database ordering, clearing, persistence gating, and toggle behavior.
+
+### Changed
+
+- `RecordingSessionDelegate` now receives the full `TranscriptionResponse` for transcript handling, so history capture includes all transcription metadata.
+- Transcript history UI now reflects persisted state, including a disabled-state empty view, a Clear action that removes saved transcripts even while history is disabled, and richer per-entry metadata in the history window.
+
 ## [1.4.1] - 2026-05-09 🩹
 
 ### Fixed
