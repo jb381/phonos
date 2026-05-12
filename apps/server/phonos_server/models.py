@@ -215,9 +215,15 @@ class ModelManager:
                 msg = self._result_queue.get(timeout=timeout)
             except queue.Empty as exc:
                 self._last_error = f"Timed out transcribing audio after {timeout} seconds"
-                # Restart worker to guarantee stale-free state
+                # Kill stale worker, reload fresh one to prevent stale results
                 self._stop_worker()
-                self._status = "error"
+                self._lock.release()
+                try:
+                    self.load(self._model_name)
+                except Exception:
+                    self._status = "error"
+                finally:
+                    self._lock.acquire()
                 raise TimeoutError(self._last_error) from exc
             if msg.get("type") == "error":
                 raise RuntimeError(msg.get("message", "Transcription failed"))
