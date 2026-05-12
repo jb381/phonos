@@ -33,3 +33,5 @@ tmp/
 *.wav
 *.m4a
 *.mp3
+findings.md
+.codex
