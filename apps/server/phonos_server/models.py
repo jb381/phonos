@@ -1,3 +1,4 @@
+import contextlib
 import logging
 import multiprocessing as mp
 import os
@@ -9,8 +10,6 @@ import time
 from phonos_server.config import Settings
 
 logger = logging.getLogger(__name__)
-
-REQUEST_TIMEOUT = 600
 
 
 def _worker_run(
@@ -158,7 +157,7 @@ class ModelManager:
         )
         self._process.start()
         try:
-            msg = self._result_queue.get(timeout=REQUEST_TIMEOUT)
+            msg = self._result_queue.get(timeout=self.settings.model_load_timeout_seconds)
         except queue.Empty as exc:
             self._stop_worker()
             raise RuntimeError(f"Timed out loading model: {model_name}") from exc
@@ -216,6 +215,9 @@ class ModelManager:
                 msg = self._result_queue.get(timeout=timeout)
             except queue.Empty as exc:
                 self._last_error = f"Timed out transcribing audio after {timeout} seconds"
+                # Drain any stale result so next call doesn't pick it up
+                with contextlib.suppress(queue.Empty):
+                    self._result_queue.get_nowait()
                 raise TimeoutError(self._last_error) from exc
             if msg.get("type") == "error":
                 raise RuntimeError(msg.get("message", "Transcription failed"))

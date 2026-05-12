@@ -11,6 +11,7 @@ from phonos_server.models import ModelManager
 from phonos_server.transcription import transcribe_audio
 
 logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 class SetModelRequest(BaseModel):
@@ -31,6 +32,8 @@ def _require_manager() -> ModelManager:
 async def lifespan(app: FastAPI):
     global manager
     settings = get_settings()
+    if not settings.auth_token:
+        logger.warning("⚠️  Authentication is disabled! Set PHONOS_AUTH_TOKEN to enable.")
     manager = ModelManager(settings)
     manager.load(settings.model)
     yield

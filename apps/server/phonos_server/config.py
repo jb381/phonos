@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     vad_filter: bool = True
     transcribe_timeout_seconds: int = 600
     max_upload_mb: int = 100
+    model_load_timeout_seconds: int = 600
 
     model_config = {"env_prefix": "PHONOS_", "env_file": ".env"}
 
