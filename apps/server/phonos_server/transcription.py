@@ -47,6 +47,9 @@ async def transcribe_audio(
                     )
                 tmp.write(chunk)
     except HTTPException:
+        if tmp_path:
+            with contextlib.suppress(OSError):
+                os.unlink(tmp_path)
         raise
     except Exception:
         if tmp_path:
