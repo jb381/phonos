@@ -32,20 +32,30 @@ async def transcribe_audio(
         )
 
     max_upload_bytes = settings.max_upload_mb * 1024 * 1024
-    suffix = os.path.splitext(file.filename)[1] or ".wav"
-    with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
-        tmp_path = tmp.name
-        size_bytes = 0
-        while chunk := await file.read(UPLOAD_CHUNK_SIZE):
-            size_bytes += len(chunk)
-            if size_bytes > max_upload_bytes:
-                with contextlib.suppress(OSError):
-                    os.unlink(tmp_path)
-                raise HTTPException(
-                    status_code=413,
-                    detail=f"Audio file exceeds {settings.max_upload_mb} MB upload limit",
-                )
-            tmp.write(chunk)
+    suffix = os.path.splitext(file.filename)[1].lower() or ".wav"
+    tmp_path = None
+    try:
+        with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
+            tmp_path = tmp.name
+            size_bytes = 0
+            while chunk := await file.read(UPLOAD_CHUNK_SIZE):
+                size_bytes += len(chunk)
+                if size_bytes > max_upload_bytes:
+                    raise HTTPException(
+                        status_code=413,
+                        detail=f"Audio file exceeds {settings.max_upload_mb} MB upload limit",
+                    )
+                tmp.write(chunk)
+    except HTTPException:
+        if tmp_path:
+            with contextlib.suppress(OSError):
+                os.unlink(tmp_path)
+        raise
+    except Exception:
+        if tmp_path:
+            with contextlib.suppress(OSError):
+                os.unlink(tmp_path)
+        raise
 
     if size_bytes == 0:
         with contextlib.suppress(OSError):

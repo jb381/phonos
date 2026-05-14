@@ -10,8 +10,6 @@ from phonos_server.config import Settings
 
 logger = logging.getLogger(__name__)
 
-REQUEST_TIMEOUT = 600
-
 
 def _worker_run(
     model_name: str,
@@ -158,7 +156,7 @@ class ModelManager:
         )
         self._process.start()
         try:
-            msg = self._result_queue.get(timeout=REQUEST_TIMEOUT)
+            msg = self._result_queue.get(timeout=self.settings.model_load_timeout_seconds)
         except queue.Empty as exc:
             self._stop_worker()
             raise RuntimeError(f"Timed out loading model: {model_name}") from exc
@@ -198,7 +196,9 @@ class ModelManager:
             self._status = "loading"
 
     def transcribe(self, audio_path: str, **kwargs):
-        with self._lock:
+        self._lock.acquire()
+        lock_held = True
+        try:
             if self._process is None or not self._process.is_alive():
                 self._status = "error"
                 self._last_error = "No model loaded"
@@ -215,8 +215,18 @@ class ModelManager:
             try:
                 msg = self._result_queue.get(timeout=timeout)
             except queue.Empty as exc:
-                self._last_error = f"Timed out transcribing audio after {timeout} seconds"
-                raise TimeoutError(self._last_error) from exc
+                timeout_message = f"Timed out transcribing audio after {timeout} seconds"
+                model_name = self._model_name
+                self._last_error = timeout_message
+                # Kill stale worker, reload fresh one to prevent stale results
+                self._stop_worker()
+                self._lock.release()
+                lock_held = False
+                try:
+                    self.load(model_name)
+                except Exception:
+                    logger.exception("Failed to reload model after transcription timeout")
+                raise TimeoutError(timeout_message) from exc
             if msg.get("type") == "error":
                 raise RuntimeError(msg.get("message", "Transcription failed"))
             if "text" not in msg:
@@ -227,3 +237,6 @@ class ModelManager:
                 "language": msg.get("language", ""),
                 "duration_seconds": msg.get("duration_seconds", 0),
             }
+        finally:
+            if lock_held:
+                self._lock.release()

@@ -22,6 +22,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `RecordingSessionDelegate` now receives the full `TranscriptionResponse` for transcript handling, so history capture includes all transcription metadata.
 - Transcript history UI now reflects persisted state, including a disabled-state empty view, a Clear action that removes saved transcripts even while history is disabled, and richer per-entry metadata in the history window.
 
+## [1.5.1] - 2026-05-12 🐛
+
+### Fixed
+
+- Normalized uppercase upload extensions before WAV header checks so `.WAV` files get the same validation as `.wav` files.
+- Preserved clear transcription timeout errors while reloading the worker after a timeout.
+- Drained stale transcription results from the worker queue on timeout so the next request doesn't pick up a stale response.
+- Wrapped temp file write phase in a try/except to prevent file leaks when `tmp.write()` raises an exception (e.g. disk full).
+- Added startup log warning when authentication is disabled (`PHONOS_AUTH_TOKEN` not set).
+- Fixed strong reference cycle in `AudioRecorder.installTap` closure by using `[weak self]`.
+
+### Changed
+
+- Made model load timeout configurable via `PHONOS_MODEL_LOAD_TIMEOUT_SECONDS` (default 600), replacing the hardcoded `REQUEST_TIMEOUT` constant.
+
 ## [1.4.1] - 2026-05-09 🩹
 
 ### Fixed
