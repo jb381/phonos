@@ -32,7 +32,7 @@ async def transcribe_audio(
         )
 
     max_upload_bytes = settings.max_upload_mb * 1024 * 1024
-    suffix = os.path.splitext(file.filename)[1] or ".wav"
+    suffix = os.path.splitext(file.filename)[1].lower() or ".wav"
     tmp_path = None
     try:
         with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:

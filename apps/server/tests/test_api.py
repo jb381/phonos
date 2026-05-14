@@ -133,6 +133,74 @@ class TestModelManager:
         assert manager.status == "error"
         assert manager.last_error == "boom"
 
+    def test_transcribe_timeout_preserves_timeout_error_when_reload_fails(self):
+        import queue
+        from unittest.mock import patch
+
+        import pytest
+
+        from phonos_server.config import Settings
+        from phonos_server.models import ModelManager
+
+        class FakeProcess:
+            def __init__(self):
+                self.alive = True
+
+            def is_alive(self):
+                return self.alive
+
+            def join(self, timeout=None):
+                self.alive = False
+
+            def kill(self):
+                self.alive = False
+
+        class FakeCommandQueue:
+            def __init__(self):
+                self.messages = []
+
+            def put(self, message):
+                self.messages.append(message)
+
+            def close(self):
+                pass
+
+            def join_thread(self):
+                pass
+
+        class TimeoutResultQueue:
+            def get(self, timeout=None):
+                raise queue.Empty
+
+            def close(self):
+                pass
+
+            def join_thread(self):
+                pass
+
+        settings = Settings(transcribe_timeout_seconds=1)
+        manager = ModelManager(settings)
+        command_queue = FakeCommandQueue()
+        manager._model_name = "base.en"
+        manager._status = "loaded"
+        manager._process = FakeProcess()
+        manager._cmd_queue = command_queue
+        manager._result_queue = TimeoutResultQueue()
+
+        with (
+            patch.object(ModelManager, "_start_worker", side_effect=RuntimeError("reload failed")),
+            pytest.raises(
+                TimeoutError,
+                match="Timed out transcribing audio after 1 seconds",
+            ),
+        ):
+            manager.transcribe("/tmp/audio.wav")
+
+        assert command_queue.messages[0]["action"] == "transcribe"
+        assert command_queue.messages[1]["action"] == "quit"
+        assert manager.status == "error"
+        assert manager.last_error == "reload failed"
+
 
 class TestTranscribe:
     def test_transcribe_wav(self, client_with_auth, auth_headers, sample_wav):
@@ -172,6 +240,18 @@ class TestTranscribe:
         response = client_with_auth.post(
             "/transcribe",
             files={"file": ("test.wav", fake_wav, "audio/wav")},
+            headers=auth_headers,
+        )
+        assert response.status_code == 400
+        assert "Invalid WAV" in response.json()["detail"]
+
+    def test_transcribe_invalid_uppercase_wav_header(self, client_with_auth, auth_headers):
+        import io
+
+        fake_wav = io.BytesIO(b"NOT_A_RIFF_WAVE_FILE")
+        response = client_with_auth.post(
+            "/transcribe",
+            files={"file": ("test.WAV", fake_wav, "audio/wav")},
             headers=auth_headers,
         )
         assert response.status_code == 400

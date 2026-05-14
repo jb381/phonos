@@ -26,6 +26,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Normalized uppercase upload extensions before WAV header checks so `.WAV` files get the same validation as `.wav` files.
+- Preserved clear transcription timeout errors while reloading the worker after a timeout.
 - Drained stale transcription results from the worker queue on timeout so the next request doesn't pick up a stale response.
 - Wrapped temp file write phase in a try/except to prevent file leaks when `tmp.write()` raises an exception (e.g. disk full).
 - Added startup log warning when authentication is disabled (`PHONOS_AUTH_TOKEN` not set).
