@@ -78,7 +78,8 @@ actor AudioRecorder {
             }
         }
 
-        inputNode.installTap(onBus: 0, bufferSize: 4096, format: format) { buffer, _ in
+        inputNode.installTap(onBus: 0, bufferSize: 4096, format: format) { [weak self] buffer, _ in
+            guard let self = self else { return }
             do {
                 try outputFile.write(from: buffer)
             } catch {
