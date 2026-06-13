@@ -1,0 +1,43 @@
+# Gitleaks configuration for Phonos
+# See https://github.com/gitleaks/gitleaks#configuration
+
+[allowlist]
+  description = "Allowlist for common placeholder and non-secret patterns"
+
+  # Allow empty/placeholder env vars in .env.example files
+  paths = [
+    # Example env files contain template values, not real secrets
+    '''(^|/)\.env\.example$''',
+    '''(^|/)\.env\.template$''',
+    '''(^|/)env\.example$''',
+    # Test fixtures that may contain dummy tokens
+    '''(^|/)tests/''',
+    '''(^|/)__tests__/''',
+  ]
+
+  # Common placeholder token values that are not real secrets
+  regexes = [
+    # Empty or obvious placeholder values
+    '''^$''',                                    # empty token value
+    '''^your-''',                                 # "your-token", "your-key", etc.
+    '''^CHANGEME$''',                            # obvious placeholder
+    '''^PLACEHOLDER$''',                         # explicit placeholder
+    '''^<''',                                     # placeholder in angle brackets like <your-token>
+    '''^token$''',                                # literal "token"
+    '''^secret$''',                               # literal "secret"
+    '''^sk-[a-zA-Z0-9_-]*placeholder''',          # OpenAI-style placeholder keys
+    '''^ghp_[a-zA-Z0-9_-]*placeholder''',         # GitHub PAT placeholders
+    # Values that are clearly comments or template markers
+    '''(INSERT|YOUR|TODO|FIXME|EXAMPLE)_[A-Z_]+''',
+    # Hex/generic examples used in documentation
+    '''^[0]{16,}$''',                             # all zeros padding
+    '''^[x]{16,}$''',                             # all x's padding
+    # UUID-style placeholders
+    '''^00000000-0000-0000-0000-000000000000$''',  # nil UUID
+    # Docker Compose / CI interpolation markers (non-secret)
+    '''^\$\{''',                                  # shell variable reference
+    '''^\$\(''',                                   # command substitution
+  ]
+
+  # Specific commits to ignore (e.g., historical commits that added examples)
+  # commits = []
