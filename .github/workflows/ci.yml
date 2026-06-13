@@ -78,6 +78,18 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+  gitleaks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   swift:
     runs-on: macos-15
     permissions:
