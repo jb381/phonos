@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     max_upload_mb: int = 100
     model_load_timeout_seconds: int = 600
 
-    model_config = {"env_prefix": "PHONOS_", "env_file": ".env"}
+    model_config = {"env_prefix": "PHONOS_", "env_file": ".env", "extra": "ignore"}
 
     def model_list(self) -> list[str]:
         return [m.strip() for m in self.models.split(",") if m.strip()]
