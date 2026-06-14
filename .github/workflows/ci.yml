@@ -25,9 +25,10 @@ jobs:
       - run: uv run pytest -m "not e2e"
 
       - name: Audit dependencies for CVEs
-        uses: pypa/gh-action-pip-audit@v1.1.0
-        with:
-          inputs: apps/server/uv.lock
+        run: |
+          uv export --frozen --no-dev --output-file=/tmp/requirements.txt
+          uv pip install pip-audit
+          uv run pip-audit -r /tmp/requirements.txt
 
       - run: uv run ruff check .
 
