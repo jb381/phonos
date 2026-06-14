@@ -24,6 +24,11 @@ jobs:
 
       - run: uv run pytest -m "not e2e"
 
+      - name: Audit dependencies for CVEs
+        uses: pypa/gh-action-pip-audit@v1.1.0
+        with:
+          inputs: apps/server/uv.lock
+
       - run: uv run ruff check .
 
   e2e:
@@ -69,7 +74,34 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
             type=ref,event=branch
 
-      - uses: docker/build-push-action@v6
+      # Build first, scan for CVEs, then push — never publish a vulnerable image
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: apps/server
+          load: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Scan image for CVEs
+        uses: aquasecurity/trivy-action@0.29.0
+        with:
+          image-ref: ${{ fromJSON(steps.meta.outputs.json).tags[0] }}
+          exit-code: 1
+          severity: CRITICAL,HIGH
+          format: sarif
+          output: trivy-results.sarif
+
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-results.sarif
+          category: trivy
+
+      - name: Push image to registry
+        uses: docker/build-push-action@v6
         with:
           context: apps/server
           push: true
